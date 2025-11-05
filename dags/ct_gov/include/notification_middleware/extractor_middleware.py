@@ -14,7 +14,14 @@ def persist_extraction_state_before_failure(error: Exception, context:Dict, meta
         "pages_loaded": metadata.get("pages_loaded"),
         "last_saved_token": metadata.get("last_saved_token"),
         "next_page_url": metadata.get("next_page_url"),
+        "date": metadata.get("date"),
     }
+
+    ti = context['task_instance']
+    ti.xcom_push(
+        key="previous_states",
+        value=state
+    )
 
     details = (
         f"CT gov extraction for date: {metadata.get('date')} FAILED\n"
@@ -46,6 +53,7 @@ def persist_extraction_state_before_exit(context:Dict, metadata:Dict) -> None:
         "pages_loaded": metadata.get("pages_loaded"),
         "last_saved_token": metadata.get("last_saved_token"),
         "next_page_url": metadata.get("next_page_url"),
+        "date": metadata.get("date"),
     }
 
     ti = context['task_instance']
