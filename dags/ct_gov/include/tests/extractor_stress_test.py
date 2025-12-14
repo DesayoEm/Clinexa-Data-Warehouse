@@ -4,13 +4,13 @@ from airflow.utils.log.logging_mixin import LoggingMixin
 
 log = LoggingMixin().log
 
+
 class FailureGenerator:
     """Controlled failures for testing resilience"""
 
-    def __init__(self, enabled: bool,  failure_rate: float):
+    def __init__(self, enabled: bool, failure_rate: float):
         self.enabled = enabled
         self.failure_rate = failure_rate
-
 
     def maybe_fail_extraction(self, page_num):
         if not self.enabled:

@@ -9,6 +9,7 @@ from ct_gov.include.config import config
 from ct_gov.include.handlers.s3_handler import S3Handler
 
 from airflow.utils.log.logging_mixin import LoggingMixin
+
 log = LoggingMixin().log
 
 
@@ -17,10 +18,8 @@ log = LoggingMixin().log
     start_date=datetime(2025, 10, 27),
     catchup=False,
     schedule=None,
-    tags=["ctgov"]
+    tags=["ctgov"],
 )
-
-
 def process_ct_gov():
 
     @task
@@ -31,7 +30,6 @@ def process_ct_gov():
         e = Extractor(context=context, s3_hook=s3_hook)
 
         return e.make_requests()
-
 
     extract_task = extract()
 

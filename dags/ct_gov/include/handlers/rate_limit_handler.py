@@ -1,5 +1,6 @@
 import time
 
+
 class RateLimiterHandler:
     def __init__(self, max_requests=50, window_seconds=60):
         self.max_requests = max_requests
@@ -8,8 +9,9 @@ class RateLimiterHandler:
 
     def wait_if_needed(self):
         now = time.time()
-        self.requests = [req_time for req_time in self.requests
-                         if now - req_time < self.window]
+        self.requests = [
+            req_time for req_time in self.requests if now - req_time < self.window
+        ]
 
         if len(self.requests) >= self.max_requests:
             sleep_time = self.window - (now - self.requests[0])

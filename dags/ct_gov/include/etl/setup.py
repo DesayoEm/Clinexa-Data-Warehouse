@@ -1,12 +1,13 @@
 from typing import Dict
 from ct_gov.include.handlers.s3_handler import S3Handler
 from ct_gov.include.notification_middleware.generic_middleware import (
-    persist_before_failure, persist_before_exit
+    persist_before_failure,
+    persist_before_exit,
 )
 
 from airflow.utils.log.logging_mixin import LoggingMixin
-log = LoggingMixin().log
 
+log = LoggingMixin().log
 
 
 class Setup:
@@ -27,10 +28,7 @@ class Setup:
             )
             destination = f"{bucket}/{folder_key}"
 
-            metadata = {
-                'destination_bucket': destination,
-                'date': self.context["ds"]
-            }
+            metadata = {"destination_bucket": destination, "date": self.context["ds"]}
             persist_before_exit(self.context, metadata)
             return destination
 
@@ -38,8 +36,6 @@ class Setup:
             persist_before_failure(
                 error=e,
                 context=self.context,
-                metadata={
-                    'attempted_object': f"{bucket}/{folder_name}"
-                }
+                metadata={"attempted_object": f"{bucket}/{folder_name}"},
             )
             raise e  # todo: create notification
