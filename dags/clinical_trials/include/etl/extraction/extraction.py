@@ -145,7 +145,7 @@ class Extractor:
 
     def make_requests(self) -> Dict:
 
-        while self.last_saved_page < 5:  # test volume
+        while True:  # test volume
             current_page = self.last_saved_page + 1
             # current page is used for logging and error reporting within the namespace of this function, and
             # not for tracking progress. progress is tracked by self.last_saved_page
