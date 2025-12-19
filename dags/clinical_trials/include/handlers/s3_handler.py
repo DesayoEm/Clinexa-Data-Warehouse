@@ -1,11 +1,6 @@
-from typing import Dict
-from datetime import datetime
-import boto3
 import os
 from airflow.utils.log.logging_mixin import LoggingMixin
-
-# from dags.ct_gov.include.config import config
-from ct_gov.include.config import config
+from clinical_trials.include.config import config
 
 
 log = LoggingMixin().log

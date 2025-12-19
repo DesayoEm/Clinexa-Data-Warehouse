@@ -6,7 +6,7 @@ log = LoggingMixin().log
 
 
 class FailureGenerator:
-    """Controlled failures for testing resilience"""
+    """Controlled failures for testing errors"""
 
     def __init__(self, enabled: bool, failure_rate: float):
         self.enabled = enabled
@@ -16,11 +16,11 @@ class FailureGenerator:
         if not self.enabled:
             return
 
-        should_cause_chaos = rand.random() < self.failure_rate
+        should_cause_chaos = rand.random() <= self.failure_rate
 
         if should_cause_chaos:
-            error = Exception("Delibrate error error")
-            log.warning(f"Failure generator strikes at page {page_num}!")
+            error = Exception("Controlled error")
+            log.warning(f"Failure generator strikes at page {page_num}")
             raise error
         else:
             log.debug(f"Failure generator spares page {page_num}")

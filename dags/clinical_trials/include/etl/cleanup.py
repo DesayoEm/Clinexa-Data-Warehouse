@@ -3,11 +3,11 @@ from airflow.models.variable import Variable
 
 log = LoggingMixin().log
 
+
 class CleanUp:
     def __init__(self, context):
         self.context = context
         self.execution_date = self.context["ds"]
-
 
     def clear_all_checkpoints(self):
         """

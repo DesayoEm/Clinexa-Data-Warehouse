@@ -41,4 +41,3 @@ def persist_extraction_state_before_failure(
     # )
     # notifier.notify(context)
     raise error
-

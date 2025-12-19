@@ -1,10 +1,8 @@
 from typing import Dict
-from ct_gov.include.handlers.s3_handler import S3Handler
-from ct_gov.include.notification_middleware.generic_middleware import (
+from clinical_trials.include.handlers.s3_handler import S3Handler
+from clinical_trials.include.notification_middleware.generic_middleware import (
     persist_before_failure,
-    persist_before_exit,
 )
-
 from airflow.utils.log.logging_mixin import LoggingMixin
 
 log = LoggingMixin().log
