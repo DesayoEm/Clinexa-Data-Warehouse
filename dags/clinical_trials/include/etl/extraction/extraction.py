@@ -39,6 +39,7 @@ class StateHandler:
             "last_saved_page": 0,
             "last_saved_token": None,
             "next_page_url": config.FIRST_PAGE_URL,
+            "previous_token": None
         }
 
         ti = self.context.get("task_instance")
@@ -91,7 +92,7 @@ class StateHandler:
             self.log.info(f"Defaulting to 0")
             return default_state
 
-    def save_checkpoint(self, last_saved_page: int, last_saved_token: str) -> None:
+    def save_checkpoint(self, previous_token: str, last_saved_page: int, last_saved_token: str) -> None:
         """
         Save checkpoint to Airflow Variable for retry recovery.
         Overwrites previous run for same task_id + execution_date.
@@ -103,11 +104,12 @@ class StateHandler:
             "last_saved_page": last_saved_page,
             "last_saved_token": last_saved_token,
             "next_page_url": f"{config.BASE_URL}{last_saved_token}",
+            "previous_token": previous_token
         }
 
         Variable.set(checkpoint_key, json.dumps(checkpoint_value))
         self.log.info(
-            f"Checkpoint saved - Key: {checkpoint_key}, Page: {last_saved_page}, Token {last_saved_token}"
+            f"Checkpoint saved - Key: {checkpoint_key}, Page: {last_saved_page}, Previous token: {previous_token}, Current token: {last_saved_token}"
         )
 
 
@@ -125,6 +127,7 @@ class Extractor:
         self.last_saved_page: int = 0
         self.next_page_url: str | None = None
         self.last_saved_token: str | None = None
+        self.previous_token: str | None = None
 
         initial_state = self.state.determine_state()
         self.last_saved_page = initial_state.get("last_saved_page")
@@ -160,6 +163,7 @@ class Extractor:
                         data = response.json()
                         next_page_token = data.get("nextPageToken")
 
+                        self.previous_token = self.last_saved_token
                         self.last_saved_token = next_page_token
 
                         self.save_response(current_page, data)
@@ -172,7 +176,7 @@ class Extractor:
                         )
 
                         self.state.save_checkpoint(
-                            self.last_saved_page, self.last_saved_token
+                            self.previous_token, self.last_saved_page,  self.last_saved_token
                         )
                         persist_extraction_state_before_failure(
                             error=RequestTimeoutError,
@@ -185,47 +189,73 @@ class Extractor:
                         )
 
                 if not next_page_token:
-                    # consider where this could be as a result of errors, and not the extractor reaching the last page
+                    #All pages extracted.
+                    # tracking self.previous_token is important here. Saving second to last page
+                    # is useful to verify if all data was truly extracted
+
                     self.log.info(f"Next page not found on page {current_page}")
 
                     self.state.save_checkpoint(
-                        self.last_saved_page, self.last_saved_token
+                        self.previous_token, self.last_saved_page, self.last_saved_token
                     )
-                    metadata = {
-                        "pages_loaded": self.last_saved_page,
-                        "last_saved_token": self.last_saved_token,  # using last known state
-                        "token_type": "Last known due to inability to extract token from last saved page",
-                        "date": self.execution_date,
+
+                    manifest = {
+                        "location": f"s3://{config.CTGOV_STAGING_BUCKET}/{self.execution_date}",
+                        "created_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                        "metrics": {
+                            "page_count": self.last_saved_page,
+                        },
+                        "lineage": {
+                            "dag_id": self.context["dag"].dag_id,
+                            "run_id": self.context["run_id"],
+                            "execution_date": self.execution_date,
+                        }
                     }
 
+                    manifest_key = f"{self.execution_date}_manifest.json"
+
+                    self.s3_hook.load_string(
+                        string_data=json.dumps(manifest, indent=2),
+                        key=manifest_key,
+                        bucket_name=config.CTGOV_STAGING_BUCKET,
+                        replace=True
+                    )
+
+                    self.log.info(
+                        f"Manifest saved to s3://{config.CTGOV_STAGING_BUCKET}/{self.execution_date}/{manifest_key}")
+
+                    metadata = {
+                        "pages_extracted": self.last_saved_page,
+                        "last_valid_token": self.previous_token,
+                        "final_token": self.last_saved_token,
+                        "data_location": f"s3://{config.CTGOV_STAGING_BUCKET}/{self.execution_date}/"
+                    }
                     return metadata
+
+
 
             except Exception as e:
                 self.log.info(f"{str(e)}")
-                self.state.save_checkpoint(self.last_saved_page, self.last_saved_token)
+
+                self.state.save_checkpoint(
+                    self.previous_token, self.last_saved_page, self.last_saved_token
+                )
+
                 persist_extraction_state_before_failure(
                     error=e,
                     context=self.context,
                     metadata={
-                        "pages_loaded": self.last_saved_page,
-                        "last_saved_token": next_page_token,
-                        "date": self.execution_date,
+                        "pages_extracted": self.last_saved_page,
+                        "last_valid_token": self.previous_token,
+                        "final_token": self.last_saved_token,
+                        "data_location": f"s3://{config.CTGOV_STAGING_BUCKET}/{self.execution_date}/"
                     }
                 )
 
-        self.state.save_checkpoint(self.last_saved_page, self.last_saved_token)
-        metadata = {
-            "pages_loaded": self.last_saved_page,
-            "last_saved_token": self.last_saved_token,  # using last known state
-            "date": self.execution_date,
-        }
-        # notify here
 
-        return metadata
 
     def save_response(self, page_number: int, data: Dict) -> None:
         df = pd.DataFrame(data)
-        object_count = len(df)
         table = pa.Table.from_pandas(df)
 
         buffer = io.BytesIO()
@@ -241,27 +271,8 @@ class Extractor:
 
         self.last_saved_page += 1
 
-        manifest = {
-            "data_file": key,
-            "created_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-            "metrics": {
-                "obj_count": object_count,
-            },
-            "lineage": {
-                "dag_id": self.context["dag"].dag_id,
-                "run_id": self.context["run_id"],
-                "execution_date": self.execution_date,
-            }
-        }
-
-        manifest_key = key.replace(".parquet", "_manifest.json")
-        self.s3_hook.load_string(
-            string_data=json.dumps(manifest, indent=2),
-            key=manifest_key,
-            bucket_name=bucket,
-            replace=True
-        )
-
         destination = f"s3://{bucket}/{key}" if key else "Unknown"
         self.log.info(f"Successfully saved page {self.last_saved_page} at {destination}")
-        self.log.info(f"Metadata saved to s3://{bucket}/{manifest_key}")
+
+
+
