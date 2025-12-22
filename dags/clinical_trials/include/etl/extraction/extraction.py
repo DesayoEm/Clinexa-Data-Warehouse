@@ -7,31 +7,72 @@ from datetime import datetime
 import pandas as pd
 from typing import Dict
 import json
+import time
 
 from airflow.models import Variable
 from airflow.utils.context import Context
 
-from clinical_trials.include.handlers.rate_limit_handler import RateLimiterHandler
+from clinical_trials.include.monitoring.exceptions import RequestExhaustionError
 from clinical_trials.include.handlers.s3_handler import S3Handler
-from clinical_trials.include.exceptions import RequestTimeoutError
 from clinical_trials.include.config import config
-from clinical_trials.include.monitoring.extractor_middleware import persist_extraction_state_before_failure
+
 
 
 class StateHandler:
-    """Stateless utility class for loading extraction state from Airflow Variables."""
+    """
+    Manages extraction state persistence and recovery for clinical trials data extraction.
+
+    This stateless utility class handles checkpoint operations using Airflow Variables,
+    enabling extraction jobs to resume from their last successful point after failures or retries.
+    State is stored per task_id and execution_date combination, ensuring isolation between
+    different DAG runs.
+
+    The state includes:
+    - last_saved_page: The page number that was successfully saved
+    - last_saved_token: The pagination token for the next page
+    - next_page_url: The constructed URL for the next API request
+    - previous_token: The token used for the current page (for verification)
+
+    Attributes:
+        context (Context): Airflow task context containing execution metadata
+        execution_date (str): The logical date of the DAG run (format: YYYY-MM-DD)
+        log (logging.Logger): Airflow task logger for tracking state operations
+    """
 
     def __init__(self, context: Context):
+        """
+        Initialize the StateHandler with Airflow task context.
+        Args:
+            context (Context): Airflow task context containing execution metadata,
+            task instance, and other runtime information
+        """
         self.context = context
         self.execution_date = self.context.get("ds")
         self.log = logging.getLogger('airflow.task')
 
+
     def determine_state(self) -> Dict:
         """
-        Determines where to start extraction by checking for previous state in Variables.
-        Returns a new ExtractorState instance with either:
-        - Checkpoint data from a previous failed run (resume from where we left off)
-        - Default values (start fresh from page 0)
+        Determine the starting point for data extraction by checking for saved checkpoints.
+
+        This method implements the recovery logic for failed or retried tasks:
+        - On first run (try_number == 1): Returns default state to start fresh
+        - On retry attempts: Attempts to load checkpoint from previous run
+        - On checkpoint errors: Falls back to default state with appropriate logging
+
+        The checkpoint key is constructed as: {task_id}_{execution_date}
+
+        Returns:
+            Dict: State dictionary containing:
+                - last_saved_page (int): Page number of last successful save (0 for fresh start)
+                - last_saved_token (str|None): Pagination token for next page
+                - next_page_url (str): Full URL for next API request
+                - previous_token (str|None): Token from previous page (for verification)
+
+        Note:
+            - Handles missing checkpoints by starting fresh
+            - Logs checkpoint loading failures for debugging
+            - JSON parsing errors are caught and logged with full JSON data
         """
 
         self.log.info("Determining starting point for extractor...")
@@ -94,9 +135,37 @@ class StateHandler:
 
     def save_checkpoint(self, previous_token: str, last_saved_page: int, last_saved_token: str) -> None:
         """
-        Save checkpoint to Airflow Variable for retry recovery.
-        Overwrites previous run for same task_id + execution_date.
+        Persist current extraction state to Airflow Variables for retry recovery.
+
+        Saves a checkpoint that allows the extraction process to resume from its current
+        position if the task fails or is retried. The checkpoint is stored as a JSON string
+        in an Airflow Variable, using a composite key of task_id and execution_date.
+
+        This method overwrites any previous checkpoint for the same task_id + execution_date
+        combination, ensuring only the most recent state is preserved, and the Metadata db is not bloated
+
+        Args:
+            previous_token (str): The pagination token that was used for the current page.
+                                Used for verification and potential rollback scenarios.
+            last_saved_page (int): The page number that was successfully saved to S3.
+                                 Next extraction will start from last_saved_page + 1.
+            last_saved_token (str): The pagination token for the next page to be fetched.
+                                  Used to construct the next_page_url.
+
+        Returns:
+            None
+
+        Side Effects:
+            - Creates or updates an Airflow Variable with key: {task_id}_{execution_date}
+            - Logs checkpoint details including page number and tokens
+
+        Note:
+            Checkpoints are saved:
+            - After each successful page save
+            - Before raising exceptions on failures
+            - At the end of successful extraction runs
         """
+
         ti = self.context.get("task_instance")
         checkpoint_key = f"{ti.task_id}_{self.execution_date}"
 
@@ -114,6 +183,52 @@ class StateHandler:
 
 
 class Extractor:
+    """
+       Orchestrates paginated API extraction of clinical trials data with fault tolerance.
+
+       This class implements is an  extraction pipeline that:
+       - Fetches paginated data from the Clinical Trials API
+       - Converts responses to Parquet format for efficient storage
+       - Saves data incrementally to S3 with page-level granularity
+       - Handles rate limiting
+       - Maintains checkpoints for recovery from failures
+       - Generates extraction manifests for downstream processing
+
+       The extractor follows a stateful pagination pattern, tracking:
+       - Current page number and pagination tokens
+       - Previous token (for verification and rollback)
+       - Next page URL construction
+
+       Flow:
+       1. Initialize with context and determine starting state
+       2. Loop through paginated API responses
+       3. Convert each response to Parquet format
+       4. Save to S3 with incremental page numbers
+       5. Update checkpoints after each successful save
+       6. Generate manifest on completion
+
+       Attributes:
+           context (Context): Airflow task context for execution metadata
+            execution_date (str): Logical date of the DAG run
+            log (logging.Logger): Airflow task logger
+            state (StateHandler): Handler for checkpoint operations
+            timeout (int): HTTP request timeout in seconds
+            max_retries (int): Maximum retry attempts per page
+            last_saved_page (int): Counter for successfully saved pages
+            next_page_url (str|None): URL for the next API request
+            last_saved_token (str|None): Current pagination token
+            previous_token (str|None): Previous pagination token (for verification)
+            max_requests (int): Maximum requests allowed in the time window (default: 50)
+            window (int): Time window in seconds for rate limiting (default: 60)
+            requests (list): Timestamps of recent requests for rate limiting
+            s3_hook: S3 connection hook for file operations
+
+
+       Raises:
+           RequestExhaustionError: When max_retries is exceeded for a page
+           Exception: Various exceptions from HTTP requests or S3 operations
+       """
+
     def __init__(
         self, context: Context, s3_hook, timeout: int = 30, max_retries: int = 3
     ):
@@ -123,18 +238,22 @@ class Extractor:
         self.log = logging.getLogger('airflow.task')
         self.state = StateHandler(self.context)
         self.timeout: int = timeout
+
         self.max_retries: int = max_retries
         self.last_saved_page: int = 0
         self.next_page_url: str | None = None
         self.last_saved_token: str | None = None
         self.previous_token: str | None = None
 
+        self.max_requests: int = 50
+        self.window: int = 60
+        self.requests = []
+
         initial_state = self.state.determine_state()
         self.last_saved_page = initial_state.get("last_saved_page")
         self.next_page_url = initial_state.get("next_page_url")
 
         self.s3_hook = s3_hook
-        self.rate_limit_handler = RateLimiterHandler()
 
         self.log.info(
             f"Initializing Extractor...\n"
@@ -142,7 +261,74 @@ class Extractor:
             f"Starting URL: {self.next_page_url}"
         )
 
+    def wait_if_needed(self):
+        """
+        Implements a sliding window rate limiter that allows a maximum of 50 requests
+        per 60-second window. (standard for clinicaltrials.gov)
+
+        Algorithm:
+        1. Remove timestamps older than the current window (60 seconds)
+        2. If at max capacity (50 requests), calculate required sleep time
+        3. Sleep until the oldest request falls outside the window
+        4. Clear request history and record current request timestamp
+
+        Returns:
+            None
+
+        Side Effects:
+            - Modifies self.requests list by pruning old timestamps
+            - May sleep the current thread if rate limit is reached
+            - Appends current timestamp to self.requests
+
+        """
+        now = time.time()
+
+        #remove timestamps outside current window
+        self.requests = [
+            req_time for req_time in self.requests if now - req_time < self.window
+        ]
+
+        if len(self.requests) >= self.max_requests:
+            sleep_time = self.window - (now - self.requests[0])
+            time.sleep(sleep_time)
+            self.requests = []
+
+        self.requests.append(time.time())
+
+
     def make_requests(self) -> Dict:
+        """
+       main extraction loop with pagination, retry logic, and fault tolerance.
+
+        Request Flow Per Page:
+        - Apply rate limiting delay (if needed)
+        - Attempt HTTP GET with retries
+        - On success: parse JSON, save to S3, update tokens, continue
+        - On failure after retries: save checkpoint, push failure metadata, raise error
+        - On no next token: save final checkpoint, generate manifest, return metadata
+
+        Checkpoint saving behaviour:
+        - Checkpoints saved before raising exceptions
+        - Checkpoints saved at successful completion
+
+        Returns:
+            Dict: Extraction metadata containing:
+                - pages_extracted (int): Total number of pages successfully saved
+                - last_valid_token (str): Token of the second-to-last page (for verification)
+                - final_token (str|None): Final pagination token (should be None on completion)
+                - data_location (str): S3 path to extracted data
+
+        Raises:
+            RequestExhaustionError: When a page fails after max_retries attempts.
+                Checkpoint is saved before raising, allowing recovery.
+                Failure metadata is pushed to XCom for notifications.
+
+        Note:
+            - current_page is used for logging only; progress tracking uses last_saved_page
+            - The infinite while loop breaks when no next_page_token is found
+            - Previous token tracking enables verification that all data was extracted
+            - Rate limiting is applied before each request to prevent API throttling
+        """
 
         while True:  # test volume
             current_page = self.last_saved_page + 1
@@ -153,7 +339,7 @@ class Extractor:
             try:
                 self.log.info(f"Starting from page {current_page}")
 
-                self.rate_limit_handler.wait_if_needed()
+                self.wait_if_needed()
 
                 for attempt in range(1, self.max_retries + 1):
                     response = requests.get(self.next_page_url, timeout=self.timeout)
@@ -171,21 +357,29 @@ class Extractor:
                         break
 
                     elif attempt >= self.max_retries and response.status_code != 200:
-                        self.log.error(
-                            f"Request exception FAILED AFTER {self.max_retries} attempts on page {current_page}"
-                        )
 
                         self.state.save_checkpoint(
-                            self.previous_token, self.last_saved_page,  self.last_saved_token
+                            self.previous_token, self.last_saved_page, self.last_saved_token
                         )
-                        persist_extraction_state_before_failure(
-                            error=RequestTimeoutError,
-                            context=self.context,
-                            metadata={
-                                "pages_loaded": self.last_saved_page,
-                                "next_page_url": self.next_page_url,
-                                "date": self.execution_date,
-                            }
+
+                        ti = self.context["task_instance"]
+
+                        # construct failure metadata for notifier
+                        failure_metadata = {
+                            "status": "failed",
+                            "pages_extracted": self.last_saved_page,
+                            "last_valid_token": self.previous_token,
+                            "error_type": RequestExhaustionError,
+                            "error_message": f"Failed to fetch page {current_page} after {self.max_retries} attempts. URL: {self.next_page_url}"
+                        }
+
+                        ti.xcom_push(key="metadata", value=failure_metadata)
+
+                        #raise for logging
+                        raise RequestExhaustionError(
+                            page_number=current_page,
+                            max_attempts=self.max_retries,
+                            url=self.next_page_url,
                         )
 
                 if not next_page_token:
@@ -241,20 +435,59 @@ class Extractor:
                     self.previous_token, self.last_saved_page, self.last_saved_token
                 )
 
-                persist_extraction_state_before_failure(
-                    error=e,
-                    context=self.context,
-                    metadata={
-                        "pages_extracted": self.last_saved_page,
-                        "last_valid_token": self.previous_token,
-                        "final_token": self.last_saved_token,
-                        "data_location": f"s3://{config.CTGOV_STAGING_BUCKET}/{self.execution_date}/"
-                    }
+                ti = self.context["task_instance"]
+
+                # construct failure metadata for notifier
+                failure_metadata = {
+                    "status": "failed",
+                    "pages_extracted": self.last_saved_page,
+                    "last_valid_token": self.previous_token,
+                    "error_type": RequestExhaustionError,
+                    "error_message": f"Failed to fetch page {current_page} after {self.max_retries} attempts. URL: {self.next_page_url}"
+                }
+
+                ti.xcom_push(key="metadata", value=failure_metadata)
+                # raise for logging
+                raise RequestExhaustionError(
+                    page_number=current_page,
+                    max_attempts=self.max_retries,
+                    url=self.next_page_url,
                 )
 
 
-
     def save_response(self, page_number: int, data: Dict) -> None:
+        """
+        Convert API response to Parquet format and persist to S3.
+
+        This method handles the transformation and storage of a single page of API data:
+        1. Converts JSON response dict to pandas DataFrame
+        2. Transforms DataFrame to PyArrow Table for efficient Parquet encoding
+        3. Writes Parquet data to in-memory buffer
+        4. Uploads buffer contents to S3 with structured key naming
+        5. Increments page counter after successful save
+
+        Args:
+            page_number (int): The logical page number for this data chunk.
+                Used for file naming and progress tracking.
+                Should match current_page from calling context.
+            data (Dict): JSON response data from the API. Should be a dictionary
+                that can be converted to a pandas DataFrame.
+
+        Returns:
+            None
+
+        Side Effects:
+            - Creates a Parquet file in S3
+            - Increments self.last_saved_page counter
+            - Logs successful save with S3 destination path
+
+        Note:
+            - Uses in-memory buffer to avoid disk I/O
+            - Replaces existing file if page is re-processed
+            - Page counter incremented only after successful S3 upload
+            - Destination path logged for debugging and verification
+        """
+
         df = pd.DataFrame(data)
         table = pa.Table.from_pandas(df)
 
