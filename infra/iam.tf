@@ -23,8 +23,8 @@ output "airflow_secret_access_key" {
 }
 
 resource "aws_iam_policy" "s3_access" {
-  name        = "ctgov-s3-access"
-  description = "Allow read/write to ctgov bucket"
+  name        = "s3-access"
+  description = "Allow read/write to buckets"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -34,12 +34,16 @@ resource "aws_iam_policy" "s3_access" {
         Action = [
           "s3:PutObject",
           "s3:GetObject",
+          "s3:ListBucket",
+          "s3:ReplicateObject",
+          "s3:RestoreObject",
           "s3:DeleteObject",
-          "s3:ListBucket"
         ]
         Resource = [
           aws_s3_bucket.clinexa-ctgov.arn,
-          "${aws_s3_bucket.clinexa-ctgov.arn}/*"
+          "${aws_s3_bucket.clinexa-ctgov.arn}/*",
+          aws_s3_bucket.airflow-logs.arn,
+          "${aws_s3_bucket.airflow-logs.arn}/*"
         ]
       }
     ]
