@@ -14,13 +14,6 @@ class RequestExhaustionError(Exception):
         url: The URL that failed to fetch
     """
 
-    def __init__(
-            self,
-            page_number: int,
-            max_attempts: int,
-            url: str
-    ):
-        message = (
-            f"Failed to fetch page {page_number} after {max_attempts} attempts. URL: {url} "
-        )
+    def __init__(self, page_number: int, max_attempts: int, url: str):
+        message = f"Failed to fetch page {page_number} after {max_attempts} attempts. URL: {url} "
         super().__init__(message)

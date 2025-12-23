@@ -6,7 +6,7 @@ class CleanUp:
     def __init__(self, context):
         self.context = context
         self.execution_date = self.context["ds"]
-        self.log = logging.getLogger('airflow.task')
+        self.log = logging.getLogger("airflow.task")
 
     def clear_all_checkpoints(self):
         """

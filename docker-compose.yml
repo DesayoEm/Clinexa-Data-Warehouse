@@ -23,6 +23,7 @@ x-airflow-common:
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
 
     AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
+    PYTHONPATH: "/opt/airflow"
 
     #custom env config
     AIRFLOW_CONN_CLINEXA_DB: "postgresql://${DB_USER}:${DB_PASSWORD}@clinexa_db:5432/${DB_NAME}"
@@ -34,7 +35,7 @@ x-airflow-common:
     AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
     AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
     AWS_REGION: ${AWS_REGION}
-    CTGOV_STAGING_BUCKET: ${CTGOV_STAGING_BUCKET}
+    CTGOV_BUCKET: ${CTGOV_BUCKET}
 
     DB_NAME: ${DB_NAME}
     DB_USER: ${DB_USER}
@@ -47,7 +48,7 @@ x-airflow-common:
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
-    - ${AIRFLOW_DATA_DIR:-.}/data:/opt/airflow/data
+    - ${AIRFLOW_INCLUDE_DIR:-.}/include:/opt/airflow/include
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -57,7 +58,7 @@ x-airflow-common:
       condition: service_healthy
 
 services:
-  coresentiment_db:
+  clinexa_db:
     image: postgres:15-alpine
     container_name: clinexa-db
     restart: unless-stopped

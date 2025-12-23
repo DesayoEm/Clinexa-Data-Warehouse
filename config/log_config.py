@@ -20,21 +20,31 @@ LOG_LEVEL: str = conf.get_mandatory_value("logging", "LOGGING_LEVEL").upper()
 FAB_LOG_LEVEL: str = conf.get_mandatory_value("logging", "FAB_LOGGING_LEVEL").upper()
 
 LOG_FORMAT: str = conf.get_mandatory_value("logging", "LOG_FORMAT")
-DAG_PROCESSOR_LOG_FORMAT: str = conf.get_mandatory_value("logging", "DAG_PROCESSOR_LOG_FORMAT")
+DAG_PROCESSOR_LOG_FORMAT: str = conf.get_mandatory_value(
+    "logging", "DAG_PROCESSOR_LOG_FORMAT"
+)
 
 LOG_FORMATTER_CLASS: str = conf.get_mandatory_value(
-    "logging", "LOG_FORMATTER_CLASS", fallback="airflow.utils.log.timezone_aware.TimezoneAware"
+    "logging",
+    "LOG_FORMATTER_CLASS",
+    fallback="airflow.utils.log.timezone_aware.TimezoneAware",
 )
 
 COLORED_LOG_FORMAT: str = conf.get_mandatory_value("logging", "COLORED_LOG_FORMAT")
 
 COLORED_LOG: bool = conf.getboolean("logging", "COLORED_CONSOLE_LOG")
 
-COLORED_FORMATTER_CLASS: str = conf.get_mandatory_value("logging", "COLORED_FORMATTER_CLASS")
+COLORED_FORMATTER_CLASS: str = conf.get_mandatory_value(
+    "logging", "COLORED_FORMATTER_CLASS"
+)
 
-DAG_PROCESSOR_LOG_TARGET: str = conf.get_mandatory_value("logging", "DAG_PROCESSOR_LOG_TARGET")
+DAG_PROCESSOR_LOG_TARGET: str = conf.get_mandatory_value(
+    "logging", "DAG_PROCESSOR_LOG_TARGET"
+)
 
-BASE_LOG_FOLDER: str = os.path.expanduser(conf.get_mandatory_value("logging", "BASE_LOG_FOLDER"))
+BASE_LOG_FOLDER: str = os.path.expanduser(
+    conf.get_mandatory_value("logging", "BASE_LOG_FOLDER")
+)
 
 DEFAULT_LOGGING_CONFIG: dict[str, Any] = {
     "version": 1,
@@ -93,7 +103,9 @@ DEFAULT_LOGGING_CONFIG: dict[str, Any] = {
     },
 }
 
-EXTRA_LOGGER_NAMES: str | None = conf.get("logging", "EXTRA_LOGGER_NAMES", fallback=None)
+EXTRA_LOGGER_NAMES: str | None = conf.get(
+    "logging", "EXTRA_LOGGER_NAMES", fallback=None
+)
 if EXTRA_LOGGER_NAMES:
     new_loggers = {
         logger_name.strip(): {
@@ -143,8 +155,12 @@ if REMOTE_LOGGING:
     # WASB buckets should start with "wasb"
     # HDFS path should start with "hdfs://"
     # just to help Airflow select correct handler
-    remote_base_log_folder: str = conf.get_mandatory_value("logging", "remote_base_log_folder")
-    remote_task_handler_kwargs = conf.getjson("logging", "remote_task_handler_kwargs", fallback={})
+    remote_base_log_folder: str = conf.get_mandatory_value(
+        "logging", "remote_base_log_folder"
+    )
+    remote_task_handler_kwargs = conf.getjson(
+        "logging", "remote_task_handler_kwargs", fallback={}
+    )
     if not isinstance(remote_task_handler_kwargs, dict):
         raise ValueError(
             "logging/remote_task_handler_kwargs must be a JSON object (a python dict), we got "
@@ -169,9 +185,13 @@ if REMOTE_LOGGING:
         remote_task_handler_kwargs = {}
 
     elif remote_base_log_folder.startswith("cloudwatch://"):
-        from airflow.providers.amazon.aws.log.cloudwatch_task_handler import CloudWatchRemoteLogIO
+        from airflow.providers.amazon.aws.log.cloudwatch_task_handler import (
+            CloudWatchRemoteLogIO,
+        )
 
-        _default_conn_name_from("airflow.providers.amazon.aws.hooks.logs", "AwsLogsHook")
+        _default_conn_name_from(
+            "airflow.providers.amazon.aws.hooks.logs", "AwsLogsHook"
+        )
         url_parts = urlsplit(remote_base_log_folder)
         REMOTE_TASK_LOG = CloudWatchRemoteLogIO(
             **(
@@ -204,9 +224,13 @@ if REMOTE_LOGGING:
         )
         remote_task_handler_kwargs = {}
     elif remote_base_log_folder.startswith("wasb"):
-        from airflow.providers.microsoft.azure.log.wasb_task_handler import WasbRemoteLogIO
+        from airflow.providers.microsoft.azure.log.wasb_task_handler import (
+            WasbRemoteLogIO,
+        )
 
-        _default_conn_name_from("airflow.providers.microsoft.azure.hooks.wasb", "WasbHook")
+        _default_conn_name_from(
+            "airflow.providers.microsoft.azure.hooks.wasb", "WasbHook"
+        )
         wasb_log_container = conf.get_mandatory_value(
             "azure_remote_logging", "remote_wasb_log_container", fallback="airflow-logs"
         )
@@ -256,7 +280,9 @@ if REMOTE_LOGGING:
     elif remote_base_log_folder.startswith("hdfs://"):
         from airflow.providers.apache.hdfs.log.hdfs_task_handler import HdfsRemoteLogIO
 
-        _default_conn_name_from("airflow.providers.apache.hdfs.hooks.webhdfs", "WebHDFSHook")
+        _default_conn_name_from(
+            "airflow.providers.apache.hdfs.hooks.webhdfs", "WebHDFSHook"
+        )
 
         REMOTE_TASK_LOG = HdfsRemoteLogIO(
             **(
@@ -270,15 +296,33 @@ if REMOTE_LOGGING:
         )
         remote_task_handler_kwargs = {}
     elif ELASTICSEARCH_HOST:
-        ELASTICSEARCH_END_OF_LOG_MARK: str = conf.get_mandatory_value("elasticsearch", "END_OF_LOG_MARK")
-        ELASTICSEARCH_FRONTEND: str = conf.get_mandatory_value("elasticsearch", "frontend")
-        ELASTICSEARCH_WRITE_STDOUT: bool = conf.getboolean("elasticsearch", "WRITE_STDOUT")
-        ELASTICSEARCH_WRITE_TO_ES: bool = conf.getboolean("elasticsearch", "WRITE_TO_ES")
-        ELASTICSEARCH_JSON_FORMAT: bool = conf.getboolean("elasticsearch", "JSON_FORMAT")
-        ELASTICSEARCH_JSON_FIELDS: str = conf.get_mandatory_value("elasticsearch", "JSON_FIELDS")
-        ELASTICSEARCH_TARGET_INDEX: str = conf.get_mandatory_value("elasticsearch", "TARGET_INDEX")
-        ELASTICSEARCH_HOST_FIELD: str = conf.get_mandatory_value("elasticsearch", "HOST_FIELD")
-        ELASTICSEARCH_OFFSET_FIELD: str = conf.get_mandatory_value("elasticsearch", "OFFSET_FIELD")
+        ELASTICSEARCH_END_OF_LOG_MARK: str = conf.get_mandatory_value(
+            "elasticsearch", "END_OF_LOG_MARK"
+        )
+        ELASTICSEARCH_FRONTEND: str = conf.get_mandatory_value(
+            "elasticsearch", "frontend"
+        )
+        ELASTICSEARCH_WRITE_STDOUT: bool = conf.getboolean(
+            "elasticsearch", "WRITE_STDOUT"
+        )
+        ELASTICSEARCH_WRITE_TO_ES: bool = conf.getboolean(
+            "elasticsearch", "WRITE_TO_ES"
+        )
+        ELASTICSEARCH_JSON_FORMAT: bool = conf.getboolean(
+            "elasticsearch", "JSON_FORMAT"
+        )
+        ELASTICSEARCH_JSON_FIELDS: str = conf.get_mandatory_value(
+            "elasticsearch", "JSON_FIELDS"
+        )
+        ELASTICSEARCH_TARGET_INDEX: str = conf.get_mandatory_value(
+            "elasticsearch", "TARGET_INDEX"
+        )
+        ELASTICSEARCH_HOST_FIELD: str = conf.get_mandatory_value(
+            "elasticsearch", "HOST_FIELD"
+        )
+        ELASTICSEARCH_OFFSET_FIELD: str = conf.get_mandatory_value(
+            "elasticsearch", "OFFSET_FIELD"
+        )
 
         ELASTIC_REMOTE_HANDLERS: dict[str, dict[str, str | bool | None]] = {
             "task": {
@@ -300,15 +344,23 @@ if REMOTE_LOGGING:
 
         DEFAULT_LOGGING_CONFIG["handlers"].update(ELASTIC_REMOTE_HANDLERS)
     elif OPENSEARCH_HOST:
-        OPENSEARCH_END_OF_LOG_MARK: str = conf.get_mandatory_value("opensearch", "END_OF_LOG_MARK")
+        OPENSEARCH_END_OF_LOG_MARK: str = conf.get_mandatory_value(
+            "opensearch", "END_OF_LOG_MARK"
+        )
         OPENSEARCH_PORT: str = conf.get_mandatory_value("opensearch", "PORT")
         OPENSEARCH_USERNAME: str = conf.get_mandatory_value("opensearch", "USERNAME")
         OPENSEARCH_PASSWORD: str = conf.get_mandatory_value("opensearch", "PASSWORD")
         OPENSEARCH_WRITE_STDOUT: bool = conf.getboolean("opensearch", "WRITE_STDOUT")
         OPENSEARCH_JSON_FORMAT: bool = conf.getboolean("opensearch", "JSON_FORMAT")
-        OPENSEARCH_JSON_FIELDS: str = conf.get_mandatory_value("opensearch", "JSON_FIELDS")
-        OPENSEARCH_HOST_FIELD: str = conf.get_mandatory_value("opensearch", "HOST_FIELD")
-        OPENSEARCH_OFFSET_FIELD: str = conf.get_mandatory_value("opensearch", "OFFSET_FIELD")
+        OPENSEARCH_JSON_FIELDS: str = conf.get_mandatory_value(
+            "opensearch", "JSON_FIELDS"
+        )
+        OPENSEARCH_HOST_FIELD: str = conf.get_mandatory_value(
+            "opensearch", "HOST_FIELD"
+        )
+        OPENSEARCH_OFFSET_FIELD: str = conf.get_mandatory_value(
+            "opensearch", "OFFSET_FIELD"
+        )
 
         OPENSEARCH_REMOTE_HANDLERS: dict[str, dict[str, str | bool | None]] = {
             "task": {

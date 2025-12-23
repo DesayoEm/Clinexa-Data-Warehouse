@@ -1,5 +1,5 @@
-from clinical_trials.include.etl.extraction.extraction import Extractor
-from clinical_trials.include.tests.failure_generators import FailureGenerator
+from include.etl.extraction.extraction import Extractor
+from include.tests.failure_generators import FailureGenerator
 
 
 class ExtractorWithFailureInjection(Extractor):

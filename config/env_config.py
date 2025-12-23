@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     AWS_ACCESS_KEY_ID: str
     AWS_SECRET_ACCESS_KEY: str
     AWS_REGION: str
-    CTGOV_STAGING_BUCKET: str
+    CTGOV_BUCKET: str
 
     DB_NAME: str
     DB_USER: str

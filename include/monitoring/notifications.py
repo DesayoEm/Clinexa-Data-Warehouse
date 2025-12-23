@@ -4,8 +4,9 @@ from airflow.sdk.definitions.connection import AirflowNotFoundException
 
 import logging
 
+
 def failure_notification(context: Context):
-    log = logging.getLogger('airflow.task')
+    log = logging.getLogger("airflow.task")
     try:
         ti = context["task_instance"]
         metadata = ti.xcom_pull(task_ids=ti.task_id, key="metadata")
@@ -25,4 +26,3 @@ def failure_notification(context: Context):
         log.warning("Slack connection not configured, skipping notification")
     except Exception as e:
         log.error(f"ERROR raising Slack notification: {str(e)}")
-

@@ -12,10 +12,8 @@ import time
 from airflow.models import Variable
 from airflow.utils.context import Context
 
-from clinical_trials.include.monitoring.exceptions import RequestExhaustionError
-from clinical_trials.include.handlers.s3_handler import S3Handler
-from clinical_trials.include.config import config
-
+from include.monitoring.exceptions import RequestExhaustionError
+from config.env_config import config
 
 
 class StateHandler:
@@ -48,8 +46,7 @@ class StateHandler:
         """
         self.context = context
         self.execution_date = self.context.get("ds")
-        self.log = logging.getLogger('airflow.task')
-
+        self.log = logging.getLogger("airflow.task")
 
     def determine_state(self) -> Dict:
         """
@@ -80,7 +77,7 @@ class StateHandler:
             "last_saved_page": 0,
             "last_saved_token": None,
             "next_page_url": config.FIRST_PAGE_URL,
-            "previous_token": None
+            "previous_token": None,
         }
 
         ti = self.context.get("task_instance")
@@ -133,7 +130,9 @@ class StateHandler:
             self.log.info(f"Defaulting to 0")
             return default_state
 
-    def save_checkpoint(self, previous_token: str, last_saved_page: int, last_saved_token: str) -> None:
+    def save_checkpoint(
+        self, previous_token: str, last_saved_page: int, last_saved_token: str
+    ) -> None:
         """
         Persist current extraction state to Airflow Variables for retry recovery.
 
@@ -173,7 +172,7 @@ class StateHandler:
             "last_saved_page": last_saved_page,
             "last_saved_token": last_saved_token,
             "next_page_url": f"{config.BASE_URL}{last_saved_token}",
-            "previous_token": previous_token
+            "previous_token": previous_token,
         }
 
         Variable.set(checkpoint_key, json.dumps(checkpoint_value))
@@ -184,50 +183,50 @@ class StateHandler:
 
 class Extractor:
     """
-       Orchestrates paginated API extraction of clinical trials data with fault tolerance.
+    Orchestrates paginated API extraction of clinical trials data with fault tolerance.
 
-       This class implements is an  extraction pipeline that:
-       - Fetches paginated data from the Clinical Trials API
-       - Converts responses to Parquet format for efficient storage
-       - Saves data incrementally to S3 with page-level granularity
-       - Handles rate limiting
-       - Maintains checkpoints for recovery from failures
-       - Generates extraction manifests for downstream processing
+    This class implements is an  extraction pipeline that:
+    - Fetches paginated data from the Clinical Trials API
+    - Converts responses to Parquet format for efficient storage
+    - Saves data incrementally to S3 with page-level granularity
+    - Handles rate limiting
+    - Maintains checkpoints for recovery from failures
+    - Generates extraction manifests for downstream processing
 
-       The extractor follows a stateful pagination pattern, tracking:
-       - Current page number and pagination tokens
-       - Previous token (for verification and rollback)
-       - Next page URL construction
+    The extractor follows a stateful pagination pattern, tracking:
+    - Current page number and pagination tokens
+    - Previous token (for verification and rollback)
+    - Next page URL construction
 
-       Flow:
-       1. Initialize with context and determine starting state
-       2. Loop through paginated API responses
-       3. Convert each response to Parquet format
-       4. Save to S3 with incremental page numbers
-       5. Update checkpoints after each successful save
-       6. Generate manifest on completion
+    Flow:
+    1. Initialize with context and determine starting state
+    2. Loop through paginated API responses
+    3. Convert each response to Parquet format
+    4. Save to S3 with incremental page numbers
+    5. Update checkpoints after each successful save
+    6. Generate manifest on completion
 
-       Attributes:
-           context (Context): Airflow task context for execution metadata
-            execution_date (str): Logical date of the DAG run
-            log (logging.Logger): Airflow task logger
-            state (StateHandler): Handler for checkpoint operations
-            timeout (int): HTTP request timeout in seconds
-            max_retries (int): Maximum retry attempts per page
-            last_saved_page (int): Counter for successfully saved pages
-            next_page_url (str|None): URL for the next API request
-            last_saved_token (str|None): Current pagination token
-            previous_token (str|None): Previous pagination token (for verification)
-            max_requests (int): Maximum requests allowed in the time window (default: 50)
-            window (int): Time window in seconds for rate limiting (default: 60)
-            requests (list): Timestamps of recent requests for rate limiting
-            s3_hook: S3 connection hook for file operations
+    Attributes:
+        context (Context): Airflow task context for execution metadata
+         execution_date (str): Logical date of the DAG run
+         log (logging.Logger): Airflow task logger
+         state (StateHandler): Handler for checkpoint operations
+         timeout (int): HTTP request timeout in seconds
+         max_retries (int): Maximum retry attempts per page
+         last_saved_page (int): Counter for successfully saved pages
+         next_page_url (str|None): URL for the next API request
+         last_saved_token (str|None): Current pagination token
+         previous_token (str|None): Previous pagination token (for verification)
+         max_requests (int): Maximum requests allowed in the time window (default: 50)
+         window (int): Time window in seconds for rate limiting (default: 60)
+         requests (list): Timestamps of recent requests for rate limiting
+         s3_hook: S3 connection hook for file operations
 
 
-       Raises:
-           RequestExhaustionError: When max_retries is exceeded for a page
-           Exception: Various exceptions from HTTP requests or S3 operations
-       """
+    Raises:
+        RequestExhaustionError: When max_retries is exceeded for a page
+        Exception: Various exceptions from HTTP requests or S3 operations
+    """
 
     def __init__(
         self, context: Context, s3_hook, timeout: int = 30, max_retries: int = 3
@@ -235,7 +234,7 @@ class Extractor:
 
         self.context = context
         self.execution_date = self.context.get("ds")
-        self.log = logging.getLogger('airflow.task')
+        self.log = logging.getLogger("airflow.task")
         self.state = StateHandler(self.context)
         self.timeout: int = timeout
 
@@ -283,7 +282,7 @@ class Extractor:
         """
         now = time.time()
 
-        #remove timestamps outside current window
+        # remove timestamps outside current window
         self.requests = [
             req_time for req_time in self.requests if now - req_time < self.window
         ]
@@ -295,39 +294,38 @@ class Extractor:
 
         self.requests.append(time.time())
 
-
     def make_requests(self) -> Dict:
         """
-       main extraction loop with pagination, retry logic, and fault tolerance.
+        main extraction loop with pagination, retry logic, and fault tolerance.
 
-        Request Flow Per Page:
-        - Apply rate limiting delay (if needed)
-        - Attempt HTTP GET with retries
-        - On success: parse JSON, save to S3, update tokens, continue
-        - On failure after retries: save checkpoint, push failure metadata, raise error
-        - On no next token: save final checkpoint, generate manifest, return metadata
+         Request Flow Per Page:
+         - Apply rate limiting delay (if needed)
+         - Attempt HTTP GET with retries
+         - On success: parse JSON, save to S3, update tokens, continue
+         - On failure after retries: save checkpoint, push failure metadata, raise error
+         - On no next token: save final checkpoint, generate manifest, return metadata
 
-        Checkpoint saving behaviour:
-        - Checkpoints saved before raising exceptions
-        - Checkpoints saved at successful completion
+         Checkpoint saving behaviour:
+         - Checkpoints saved before raising exceptions
+         - Checkpoints saved at successful completion
 
-        Returns:
-            Dict: Extraction metadata containing:
-                - pages_extracted (int): Total number of pages successfully saved
-                - last_valid_token (str): Token of the second-to-last page (for verification)
-                - final_token (str|None): Final pagination token (should be None on completion)
-                - data_location (str): S3 path to extracted data
+         Returns:
+             Dict: Extraction metadata containing:
+                 - pages_extracted (int): Total number of pages successfully saved
+                 - last_valid_token (str): Token of the second-to-last page (for verification)
+                 - final_token (str|None): Final pagination token (should be None on completion)
+                 - data_location (str): S3 path to extracted data
 
-        Raises:
-            RequestExhaustionError: When a page fails after max_retries attempts.
-                Checkpoint is saved before raising, allowing recovery.
-                Failure metadata is pushed to XCom for notifications.
+         Raises:
+             RequestExhaustionError: When a page fails after max_retries attempts.
+                 Checkpoint is saved before raising, allowing recovery.
+                 Failure metadata is pushed to XCom for notifications.
 
-        Note:
-            - current_page is used for logging only; progress tracking uses last_saved_page
-            - The infinite while loop breaks when no next_page_token is found
-            - Previous token tracking enables verification that all data was extracted
-            - Rate limiting is applied before each request to prevent API throttling
+         Note:
+             - current_page is used for logging only; progress tracking uses last_saved_page
+             - The infinite while loop breaks when no next_page_token is found
+             - Previous token tracking enables verification that all data was extracted
+             - Rate limiting is applied before each request to prevent API throttling
         """
 
         while True:  # test volume
@@ -345,7 +343,9 @@ class Extractor:
                     response = requests.get(self.next_page_url, timeout=self.timeout)
 
                     if response.status_code == 200:
-                        self.log.info(f"Successfully made request to page {current_page}")
+                        self.log.info(
+                            f"Successfully made request to page {current_page}"
+                        )
                         data = response.json()
                         next_page_token = data.get("nextPageToken")
 
@@ -359,7 +359,9 @@ class Extractor:
                     elif attempt >= self.max_retries and response.status_code != 200:
 
                         self.state.save_checkpoint(
-                            self.previous_token, self.last_saved_page, self.last_saved_token
+                            self.previous_token,
+                            self.last_saved_page,
+                            self.last_saved_token,
                         )
 
                         ti = self.context["task_instance"]
@@ -370,12 +372,12 @@ class Extractor:
                             "pages_extracted": self.last_saved_page,
                             "last_valid_token": self.previous_token,
                             "error_type": RequestExhaustionError,
-                            "error_message": f"Failed to fetch page {current_page} after {self.max_retries} attempts. URL: {self.next_page_url}"
+                            "error_message": f"Failed to fetch page {current_page} after {self.max_retries} attempts. URL: {self.next_page_url}",
                         }
 
                         ti.xcom_push(key="metadata", value=failure_metadata)
 
-                        #raise for logging
+                        # raise for logging
                         raise RequestExhaustionError(
                             page_number=current_page,
                             max_attempts=self.max_retries,
@@ -383,7 +385,7 @@ class Extractor:
                         )
 
                 if not next_page_token:
-                    #All pages extracted.
+                    # All pages extracted.
                     # tracking self.previous_token is important here. Saving second to last page
                     # is useful to verify if all data was truly extracted
 
@@ -394,7 +396,7 @@ class Extractor:
                     )
 
                     manifest = {
-                        "location": f"s3://{config.CTGOV_STAGING_BUCKET}/{self.execution_date}",
+                        "location": f"s3://{config.CTGOV_BUCKET}/{self.execution_date}",
                         "created_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
                         "metrics": {
                             "page_count": self.last_saved_page,
@@ -403,7 +405,7 @@ class Extractor:
                             "dag_id": self.context["dag"].dag_id,
                             "run_id": self.context["run_id"],
                             "execution_date": self.execution_date,
-                        }
+                        },
                     }
 
                     manifest_key = f"{self.execution_date}_manifest.json"
@@ -411,22 +413,21 @@ class Extractor:
                     self.s3_hook.load_string(
                         string_data=json.dumps(manifest, indent=2),
                         key=manifest_key,
-                        bucket_name=config.CTGOV_STAGING_BUCKET,
-                        replace=True
+                        bucket_name=config.CTGOV_BUCKET,
+                        replace=True,
                     )
 
                     self.log.info(
-                        f"Manifest saved to s3://{config.CTGOV_STAGING_BUCKET}/{self.execution_date}/{manifest_key}")
+                        f"Manifest saved to s3://{config.CTGOV_BUCKET}/{self.execution_date}/{manifest_key}"
+                    )
 
                     metadata = {
                         "pages_extracted": self.last_saved_page,
                         "last_valid_token": self.previous_token,
                         "final_token": self.last_saved_token,
-                        "data_location": f"s3://{config.CTGOV_STAGING_BUCKET}/{self.execution_date}/"
+                        "data_location": f"s3://{config.CTGOV_BUCKET}/{self.execution_date}/",
                     }
                     return metadata
-
-
 
             except Exception as e:
                 self.log.info(f"{str(e)}")
@@ -443,7 +444,7 @@ class Extractor:
                     "pages_extracted": self.last_saved_page,
                     "last_valid_token": self.previous_token,
                     "error_type": RequestExhaustionError,
-                    "error_message": f"Failed to fetch page {current_page} after {self.max_retries} attempts. URL: {self.next_page_url}"
+                    "error_message": f"Failed to fetch page {current_page} after {self.max_retries} attempts. URL: {self.next_page_url}",
                 }
 
                 ti.xcom_push(key="metadata", value=failure_metadata)
@@ -453,7 +454,6 @@ class Extractor:
                     max_attempts=self.max_retries,
                     url=self.next_page_url,
                 )
-
 
     def save_response(self, page_number: int, data: Dict) -> None:
         """
@@ -495,7 +495,7 @@ class Extractor:
         pq.write_table(table, buffer)
         buffer.seek(0)
 
-        bucket = config.CTGOV_STAGING_BUCKET
+        bucket = config.CTGOV_BUCKET
         key = f"{self.execution_date}/{page_number}.parquet"
 
         self.s3_hook.load_bytes(
@@ -505,7 +505,6 @@ class Extractor:
         self.last_saved_page += 1
 
         destination = f"s3://{bucket}/{key}" if key else "Unknown"
-        self.log.info(f"Successfully saved page {self.last_saved_page} at {destination}")
-
-
-
+        self.log.info(
+            f"Successfully saved page {self.last_saved_page} at {destination}"
+        )
