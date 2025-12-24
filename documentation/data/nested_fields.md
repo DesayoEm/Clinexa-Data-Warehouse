@@ -1,110 +1,3 @@
-ONE_TO_ONE_FIELDS = {
-    # Identification
-    "nct_id": "protocolSection.identificationModule.nctId",
-    "brief_title": "protocolSection.identificationModule.briefTitle",
-    "official_title": "protocolSection.identificationModule.officialTitle",
-    "acronym": "protocolSection.identificationModule.acronym",
-    "org_study_id": "protocolSection.identificationModule.orgStudyIdInfo.id",
-    "org_study_type": "protocolSection.identificationModule.orgStudyIdInfo.type",
-    "org_study_link": "protocolSection.identificationModule.orgStudyIdInfo.link",
-
-    # Description
-    "brief_summary": "protocolSection.descriptionModule.briefSummary",
-    "detailed_desc": "protocolSection.descriptionModule.detailedDescription",
-
-    # Design (single values)
-    "study_type": "protocolSection.designModule.studyType",
-    "enrollment_type": "protocolSection.designModule.enrollmentInfo.type",
-    "enrollment_count": "protocolSection.designModule.enrollmentInfo.count",
-    "design_allocation": "protocolSection.designModule.designInfo.allocation",
-    "design_intervention_model": "protocolSection.designModule.designInfo.interventionModel",
-    "design_intervention_model_desc": "protocolSection.designModule.designInfo.interventionModelDescription",
-    "design_primary_purpose": "protocolSection.designModule.designInfo.primaryPurpose",
-    "design_observational_model": "protocolSection.designModule.designInfo.observationalModel",
-    "design_time_perspective": "protocolSection.designModule.designInfo.timePerspective",
-    "design_masking": "protocolSection.designModule.designInfo.maskingInfo.masking",
-    "design_masking_desc": "protocolSection.designModule.designInfo.maskingInfo.maskingDescription",
-    "design_who_masked": "protocolSection.designModule.designInfo.maskingInfo.whoMasked",
-
-    # Expanded access
-    "exp_acc_type_individual": "protocolSection.designModule.expandedAccessTypes.individual",
-    "exp_acc_type_intermediate": "protocolSection.designModule.expandedAccessTypes.intermediate",
-    "exp_acc_type_treatment": "protocolSection.designModule.expandedAccessTypes.treatment",
-
-    # Biospecimen
-    "biospec_retention": "protocolSection.designModule.bioSpec.retention",
-    "biospec_desc": "protocolSection.designModule.bioSpec.description",
-
-    # Eligibility
-    "eligibility_criteria": "protocolSection.eligibilityModule.eligibilityCriteria",
-    "healthy_volunteers": "protocolSection.eligibilityModule.healthyVolunteers",
-    "sex": "protocolSection.eligibilityModule.sex",
-    "gender_based": "protocolSection.eligibilityModule.genderBased",
-    "gender_desc": "protocolSection.eligibilityModule.genderDescription",
-    "min_age": "protocolSection.eligibilityModule.minimumAge",
-    "max_age": "protocolSection.eligibilityModule.maximumAge",
-    "population_desc": "protocolSection.eligibilityModule.studyPopulation",
-    "sampling_method": "protocolSection.eligibilityModule.samplingMethod",
-
-    # Status
-    "overall_status": "protocolSection.statusModule.overallStatus",
-    "last_known_status": "protocolSection.statusModule.lastKnownStatus",
-    "status_verified_date": "protocolSection.statusModule.statusVerifiedDate",
-    "delayed_posting": "protocolSection.statusModule.delayedPosting",
-    "start_date": "protocolSection.statusModule.startDateStruct.date",
-    "start_date_type": "protocolSection.statusModule.startDateStruct.type",
-    "first_submit_date": "protocolSection.statusModule.studyFirstSubmitDate",
-    "first_submit_qc_date": "protocolSection.statusModule.studyFirstSubmitQcDate",
-    "last_update_submit_date": "protocolSection.statusModule.lastUpdateSubmitDate",
-    "completion_date": "protocolSection.statusModule.completionDateStruct.date",
-    "completion_date_type": "protocolSection.statusModule.completionDateStruct.type",
-    "why_stopped": "protocolSection.statusModule.whyStopped",
-    "has_expanded_access": "protocolSection.statusModule.expandedAccessInfo.hasExpandedAccess",
-
-    # Oversight
-    "has_dmc": "protocolSection.oversightModule.oversightHasDmc",
-    "is_fda_regulated_drug": "protocolSection.oversightModule.isFdaRegulatedDrug",
-    "is_fda_regulated_device": "protocolSection.oversightModule.isFdaRegulatedDevice",
-    "is_unapproved_device": "protocolSection.oversightModule.isUnapprovedDevice",
-    "is_us_export": "protocolSection.oversightModule.isUsExport",
-
-    # Individual participant data
-    "ipd_sharing": "protocolSection.ipdSharingStatementModule.ipdSharing",
-    "ipd_desc": "protocolSection.ipdSharingStatementModule.description",
-    "ipd_time_frame": "protocolSection.ipdSharingStatementModule.timeFrame",
-    "ipd_access_criteria": "protocolSection.ipdSharingStatementModule.accessCriteria",
-    "ipd_url": "protocolSection.ipdSharingStatementModule.url",
-
-    # Large documents
-    "large_doc_no_sap": "documentSection.largeDocumentModule.noSap",
-
-    # Miscellaneous
-    "version_holder": "derivedSection.miscInfoModule.versionHolder",
-    "has_results": "hasResults",
-    "last_updated": "protocolSection.statusModule.lastUpdatePostDateStruct.date",
-    "unposted_responsible_party": "annotationSection.annotationModule.unpostedAnnotation.unpostedResponsibleParty",
-    "limitations_desc": "resultsSection.moreInfoModule.limitationsAndCaveats.description",
-
-    # Certain agreements
-    "certain_agreement_pi_sponsor_employee": "resultsSection.moreInfoModule.certainAgreement.piSponsorEmployee",
-    "certain_agreement_restriction_type": "resultsSection.moreInfoModule.certainAgreement.restrictionType",
-    "certain_agreement_restrictive": "resultsSection.moreInfoModule.certainAgreement.restrictiveAgreement",
-    "certain_agreement_other_details": "resultsSection.moreInfoModule.certainAgreement.otherDetails",
-
-    # Point of contact
-    "poc_title": "resultsSection.moreInfoModule.pointOfContact.title",
-    "poc_organization": "resultsSection.moreInfoModule.pointOfContact.organization",
-    "poc_email": "resultsSection.moreInfoModule.pointOfContact.email",
-    "poc_phone": "resultsSection.moreInfoModule.pointOfContact.phone",
-    "poc_phone_ext": "resultsSection.moreInfoModule.pointOfContact.phoneExt",
-
-    # Submission tracking
-    "sub_tracking_estimated_results_date": "derivedSection.miscInfoModule.submissionTracking.estimatedResultsFirstSubmitDate",
-    "sub_tracking_first_mcp_date": "derivedSection.miscInfoModule.submissionTracking.firstMcpInfo.postDateStruct.date",
-    "sub_tracking_first_mcp_type": "derivedSection.miscInfoModule.submissionTracking.firstMcpInfo.postDateStruct.type",
-}
-
-
 NESTED_FIELDS = {
 
   "sponsors": {
@@ -156,7 +49,7 @@ NESTED_FIELDS = {
         "object_type": "array_of_dicts",
         "fields": [
             ("intervention_name", "name"),
-            ("intervention_desc", "description"),
+            ("intervention_description", "description"),
             ("object_type", "object_type"),
         ],
         "nested": {
@@ -177,7 +70,7 @@ NESTED_FIELDS = {
         "table_name": "study_arm_groups",
         "fields": [
             ("arm_group_label", "label"),
-            ("arm_group_desc", "description"),
+            ("arm_group_description", "description"),
             ("object_type", "object_type"),
         ],
         "nested": {
@@ -484,7 +377,7 @@ NESTED_FIELDS = {
         "transformer_method": "extract_removed_countries"
     },
 
-    "sub_infos": {
+    "submission_infos": {
         "path": "derivedSection.miscInfoModule.submissionTracking.submissionInfos",
         "object_type": "array_of_dicts",
         "fields": [
@@ -494,9 +387,9 @@ NESTED_FIELDS = {
             ("resetDate", "resetDate"),
             ("mcpReleaseN", "mcpReleaseN")
         ],
-        "table_name": "sub_tracking",
-        "bridge_table_name": "study_sub_tracking",
-        "transformer_method": "extract_sub_infos"
+        "table_name": "submission_tracking",
+        "bridge_table_name": "study_submission_tracking",
+        "transformer_method": "extract_submission_infos"
     },
 
 
