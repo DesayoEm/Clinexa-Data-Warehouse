@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Hashable
 import logging
 import pandas as pd
 import hashlib
@@ -77,29 +77,28 @@ class Transformer:
             all_studies.append(study_record)
 
             # sponsors
-            sponsors, study_sponsors = self.extract_sponsors(study_key, study)
+            sponsors, study_sponsors = self.extract_sponsors(idx, study_key, study)
             all_sponsors.extend(sponsors)
             all_study_sponsors.extend(study_sponsors)
 
             # conditions and keywords
-            conditions, study_conditions = self.extract_conditions(study_key, study)
+            conditions, study_conditions = self.extract_conditions(idx, study_key, study)
             all_conditions.extend(conditions)
             all_study_conditions.extend(study_conditions)
 
-            keywords, study_keywords = self.extract_keywords(study_key, study)
+            keywords, study_keywords = self.extract_keywords(idx, study_key, study)
             all_keywords.extend(keywords)
             all_study_keywords.extend(study_keywords)
 
             # groups and interventions
             arm_groups, arm_group_interventions = self.extract_arm_groups(
-                study_key, study
+                idx, study_key, study
             )
             all_study_arm_groups.extend(arm_groups)
             all_study_arm_group_interventions.extend(arm_group_interventions)
 
-            interventions, intervention_other_names, study_interventions = (
-                self.extract_interventions(study_key, study)
-            )
+            interventions, intervention_other_names, study_interventions = self.extract_interventions(idx, study_key, study)
+
             all_interventions.extend(interventions)
             all_interventions_other_names.extend(intervention_other_names)
             all_study_interventions.extend(study_interventions)
@@ -137,7 +136,8 @@ class Transformer:
         # load
         return df_studies, df_sponsors, df_study_sponsors
 
-    def extract_study_fields(self, study_key: str, study_data: pd.Series) -> Dict:
+    @staticmethod
+    def extract_study_fields(study_key: str, study_data: pd.Series) -> Dict:
         study_record = dict()
 
         study_record["study_key"] = study_key
@@ -148,10 +148,12 @@ class Transformer:
 
         return study_record
 
-    def extract_sponsors(self, study_key: str, study_data: pd.Series):
+
+    def extract_sponsors(self, idx: Hashable, study_key: str, study_data: pd.Series):
         """
         Extract sponsors from a single study.
         Args:
+            idx: The index of the study on the current page
             study_key: The generated key for this study
             study_data: The nested dict for one study (not a DataFrame)
         Returns:
@@ -184,9 +186,10 @@ class Transformer:
                 {"study_key": study_key, "sponsor_key": sponsor_key, "is_lead": True}
             )
         else:
-            print("No lead sponsor found for idx")
+            self.log.warning(f"No lead sponsor found for {idx}")
 
-        # # Extract collaborators
+
+        # Extract collaborators
         collaborators_index = NESTED_FIELDS["collaborators"]["index_field"]
         collaborators_list = study_data.get(collaborators_index)
 
@@ -211,7 +214,7 @@ class Transformer:
         return sponsors, study_sponsors
 
 
-    def extract_conditions(self, study_key: str, study_data: pd.Series) -> Tuple:
+    def extract_conditions(self, idx: Hashable, study_key: str, study_data: pd.Series) -> Tuple | None:
         conditions = []
         study_conditions = []
 
@@ -219,77 +222,88 @@ class Transformer:
         conditions_list = study_data.get(conditions_index)
 
 
-        for condition in conditions_list:
-            condition_key = self.generate_key(condition)
+        if conditions_list is not None and len(conditions_list) > 0:
+            for condition in conditions_list:
+                condition_key = self.generate_key(condition)
 
-            conditions.append(
-                {"condition_key": condition_key, "condition_name": condition}
-            )
+                conditions.append(
+                    {"condition_key": condition_key, "condition_name": condition}
+                )
 
-            study_conditions.append(
-                {
-                    "study_key": study_key,
-                    "condition_key": condition_key,
-                }
-            )
+                study_conditions.append(
+                    {
+                        "study_key": study_key,
+                        "condition_key": condition_key,
+                    }
+                )
 
+
+        self.log.warning(f"No conditions found for {idx}")
         return conditions, study_conditions
 
-    def extract_keywords(self, study_key: str, study_data: pd.Series) -> Tuple:
+
+    def extract_keywords(self, idx: Hashable, study_key: str, study_data: pd.Series) -> Tuple:
         keywords = []
         study_keywords = []
 
         keywords_index = NESTED_FIELDS["keywords"]["index_field"]
         keywords_list = study_data.get(keywords_index)
 
-        for keyword in keywords_list:
-            keyword_key = self.generate_key(keyword)
+        if keywords_list is not None and len(keywords_list) > 0:
 
-            keywords.append({"keyword_key": keyword_key, "keyword_name": keyword})
+            for keyword in keywords_list:
+                keyword_key = self.generate_key(keyword)
 
-            study_keywords.append(
-                {
-                    "study_key": study_key,
-                    "keyword_key": keyword_key,
-                }
-            )
+                keywords.append({"keyword_key": keyword_key, "keyword_name": keyword})
 
+                study_keywords.append(
+                    {
+                        "study_key": study_key,
+                        "keyword_key": keyword_key,
+                    }
+                )
         return keywords, study_keywords
 
-    def extract_arm_groups(self, study_key: str, study_data: pd.Series) -> Tuple[List, List]:
+
+
+    def extract_arm_groups(self, idx: Hashable, study_key: str, study_data: pd.Series) -> Tuple[List, List] | None:
         study_arms = []
         study_arms_interventions = []
 
         study_arms_index = NESTED_FIELDS["arm_groups"]["index_field"]
         study_arms_list = study_data.get(study_arms_index)
 
-        for study_arm in study_arms_list:
-            study_arm_key = self.generate_key(study_key, study_arm.get("label"))
+        if study_arms_list is not None and len(study_arms_list) > 0:
 
-            study_arms.append(
-                {
-                    "study_arm_key": study_arm_key,
-                    "study_key": study_key,
-                    "label": study_arm.get("label"),
-                    "description": study_arm.get("description"),
-                    "type": study_arm.get("type"),
-                }
-            )
+            for study_arm in study_arms_list:
+                study_arm_key = self.generate_key(study_key, study_arm.get("label"))
 
-            arm_interventions = study_arm.get("interventionNames") or []
-
-            for intervention in arm_interventions:
-                study_arms_interventions.append(
+                study_arms.append(
                     {
-                        "study_key": study_key,
                         "study_arm_key": study_arm_key,
-                        "intervention_name": intervention,
+                        "study_key": study_key,
+                        "label": study_arm.get("label"),
+                        "description": study_arm.get("description"),
+                        "type": study_arm.get("type"),
                     }
                 )
 
+                arm_interventions = study_arm.get("interventionNames") or []
+
+                for intervention in arm_interventions:
+                    study_arms_interventions.append(
+                        {
+                            "study_key": study_key,
+                            "study_arm_key": study_arm_key,
+                            "intervention_name": intervention,
+                        }
+                    )
+
+        self.log.warning(f"No arms found for {idx}")
+
         return study_arms, study_arms_interventions
 
-    def extract_interventions(self, study_key: str, study_data: pd.Series) -> Tuple:
+    def extract_interventions(self, idx: Hashable, study_key: str, study_data: pd.Series) -> Tuple | None:
         interventions = []
         study_interventions = []
         intervention_other_names = []
@@ -297,46 +311,51 @@ class Transformer:
         interventions_index = NESTED_FIELDS["interventions"]["index_field"]
         interventions_list = study_data.get(interventions_index)
 
-        for intervention in interventions_list:
-            intervention_key = self.generate_key(study_key, intervention.get("name"))
+        if interventions_list is not None and len(interventions_list) > 0:
+            for intervention in interventions_list:
+                intervention_key = self.generate_key(study_key, intervention.get("name"))
 
-            interventions.append(
-                {
-                    "intervention_key": intervention_key,
-                    "name": intervention.get("name"),
-                    "description": intervention.get("description"),
-                    "type": intervention.get("type"),
-                }
-            )
-
-            study_interventions.append(
-                {
-                    "study_key": study_key,
-                    "intervention_key": intervention_key,
-                }
-            )
-
-            other_names = intervention.get("otherNames") or []
-            for other_name in other_names:
-                intervention_other_names.append(
+                interventions.append(
                     {
                         "intervention_key": intervention_key,
-                        "other_name": other_name,
+                        "name": intervention.get("name"),
+                        "description": intervention.get("description"),
+                        "type": intervention.get("type"),
                     }
                 )
 
+                study_interventions.append(
+                    {
+                        "study_key": study_key,
+                        "intervention_key": intervention_key,
+                    }
+                )
+
+                other_names = intervention.get("otherNames")
+                if other_names is not None and len(other_names) > 0:
+                    for other_name in other_names:
+                        intervention_other_names.append(
+                            {
+                                "intervention_key": intervention_key,
+                                "other_name": other_name,
+                            }
+                        )
+
+        self.log.warning(f"No interventions found for {idx}")
         return interventions, intervention_other_names, study_interventions
 
-    def extract_locations(self, study_key: str, study_data: pd.Series) -> Tuple:
+
+
+    def extract_locations(self, idx: Hashable, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_officials(self, study_key: str, study_data: pd.Series) -> Tuple:
+    def extract_officials(self, idx: Hashable, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
     def extract_outcomes(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_see_also(self, study_key: str, study_data: pd.Series) -> Tuple:
+    def extract_see_also(self, idx: Hashable, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
     def extract_study_phases(self, study_key: str, study_data: pd.Series) -> Tuple:
@@ -348,7 +367,7 @@ class Transformer:
     def extract_ipd_info_types(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_id_infos(self, study_key: str, study_data: pd.Series) -> Tuple:
+    def extract_id_infos(self, idx: Hashable, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
     def extract_nct_id_aliases(self, study_key: str, study_data: pd.Series) -> Tuple:
@@ -360,17 +379,17 @@ class Transformer:
     def extract_intervention_mesh(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_large_documents(self, study_key: str, study_data: pd.Series) -> Tuple:
+    def extract_large_documents(self, idx: Hashable, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_unposted_events(self, study_key: str, study_data: pd.Series) -> Tuple:
+    def extract_unposted_events(self, idx: Hashable, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_violation_events(self, study_key: str, study_data: pd.Series) -> Tuple:
+    def extract_violation_events(self, idx: Hashable, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_removed_countries(self, study_key: str, study_data: pd.Series) -> Tuple:
+    def extract_removed_countries(self, idx: Hashable, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_submission_infos(self, study_key: str, study_data: pd.Series) -> Tuple:
+    def extract_submission_infos(self, idx: Hashable, study_key: str, study_data: pd.Series) -> Tuple:
         pass
