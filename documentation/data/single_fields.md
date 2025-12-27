@@ -50,28 +50,6 @@
 - **Definition**: Extended description of the protocol, including more technical information (as compared to the Brief Summary), if desired. Does not include the entire protocol
 - **Limit**: 32,000  characters.
 
-## Organisation
-
-### org_name
-- **Index Field:** `protocolSection.identificationModule.organization.fullName`
-- **Definition**: A (registered) organization (typically the Responsible Party) that sponsors the clinical  trial (study)
-- **Limit**: 5,000  characters.
-- 
-### org_class
-- **Index Field:** `protocolSection.identificationModule.organization.class`
-- **Definition**: Organization type
-- **DataType**: Dict{Enum(AgencyClass)} 
-
-**Source Values**: 
-- * NIH - NIH
-- * FED - FED
-- * OTHER_GOV - OTHER_GOV
-- * INDIV - INDIV
-- * INDUSTRY - INDUSTRY
-- * NETWORK - NETWORK
-- * AMBIG - AMBIG
-- * OTHER - OTHER
-- * UNKNOWN - UNKNOWN
 
 ## Sponsor 
 ### responsible_party

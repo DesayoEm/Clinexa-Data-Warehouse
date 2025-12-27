@@ -19,6 +19,33 @@
 - **DataType**: Enum(OrgStudyIdType)
 - **Reason**: Missing from most rows and has no analytical value
 
+
+## Organisation
+
+### org_name
+- **Index Field:** `protocolSection.identificationModule.organization.fullName`
+- **Definition**: A (registered) organization (typically the Responsible Party) that sponsors the clinical  trial (study)
+- **Limit**: 5,000  characters.
+- **Reason**: Information provided in `protocolSection.sponsorCollaboratorsModule`
+- 
+### org_class
+- **Index Field:** `protocolSection.identificationModule.organization.class`
+- **Definition**: Organization type
+- **DataType**: Dict{Enum(AgencyClass)} 
+
+**Source Values**: 
+- * NIH - NIH
+- * FED - FED
+- * OTHER_GOV - OTHER_GOV
+- * INDIV - INDIV
+- * INDUSTRY - INDUSTRY
+- * NETWORK - NETWORK
+- * AMBIG - AMBIG
+- * OTHER - OTHER
+- * UNKNOWN - UNKNOWN
+
+- **Reason**: Information provided in `protocolSection.sponsorCollaboratorsModule`
+
 ## Design
 ### design_masking_desc
 - **Index Field:** `protocolSection.designModule.designInfo.maskingInfo.maskingDescription`

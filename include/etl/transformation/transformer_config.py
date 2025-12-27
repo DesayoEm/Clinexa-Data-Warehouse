@@ -8,11 +8,10 @@ SINGLE_FIELDS = {
     # Description
     "brief_summary": "protocolSection.descriptionModule.briefSummary",
     "detailed_desc": "protocolSection.descriptionModule.detailedDescription",
-    # Organisation
-    "org_name": "protocolSection.identificationModule.organization.fullName",
-    "org_class": "protocolSection.identificationModule.organization.class",
+
     # Sponsor
     "responsible_party": "protocolSection.sponsorCollaboratorsModule.responsibleParty.type",
+
     # Design (single values)
     "study_type": "protocolSection.designModule.studyType",
     "patient_registry": "protocolSection.designModule.patientRegistry",
@@ -81,7 +80,7 @@ SINGLE_FIELDS = {
 }
 
 NESTED_FIELDS = {
-    "sponsors": {
+    "sponsor": { #NOT NESTED BUT TREATED AS A SEPARATE DIM
         "index_field": "protocolSection.sponsorCollaboratorsModule.leadSponsor",
         "object_type": "simple dict",
         "fields": [
@@ -93,7 +92,7 @@ NESTED_FIELDS = {
         "transformer_method": "extract_sponsors",
     },
     "collaborators": {
-        "index_field": "protocolSection.sponsorCollaboratorsModule.collaborator",
+        "index_field": "protocolSection.sponsorCollaboratorsModule.collaborators",
         "object_type": "array_of_dicts",
         "fields": [
             ("sponsor_name", "name"),

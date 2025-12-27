@@ -12,6 +12,8 @@
 - `protocolSection.sponsorCollaboratorsModule.leadSponsor`
 - `protocolSection.sponsorCollaboratorsModule.collaborators[]`
 
+**NOTE**: *sponsor name and class are scalar values and MUST be extracted directly*
+
 **Object Type**: Simple dict (leadSponsor) / Array of dicts (collaborators)
 
 **Description**: Organizations responsible for the study.

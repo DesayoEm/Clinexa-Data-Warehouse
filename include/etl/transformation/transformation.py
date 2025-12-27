@@ -1,6 +1,5 @@
-from typing import Dict, List, Any, Hashable, Tuple
+from typing import Dict, List, Tuple
 import logging
-from datetime import datetime
 import pandas as pd
 import hashlib
 
@@ -24,22 +23,6 @@ class Transformer:
         """Generates a deterministic surrogate key from input values."""
         combined = "|".join(str(arg) for arg in args if arg is not None)
         return hashlib.sha256(combined.encode()).hexdigest()[:16]
-
-    @staticmethod
-    def deep_get(data, path: str):
-        """Navigate nested dict using dot separated path, or flat Series/dict."""
-        if isinstance(data, pd.Series):
-            return data.get(path)
-
-        # dict navigation
-        keys = path.split(".")
-        value = data
-        for key in keys:
-            if isinstance(value, dict):
-                value = value.get(key)
-            else:
-                return None
-        return value
 
     def transform_all_studies(self, folder: str) -> None:
         for study_file in folder:
@@ -79,11 +62,12 @@ class Transformer:
         df_studies = pd.read_parquet(data_loc)
         df_studies = pd.json_normalize(df_studies["studies"])
 
-        for study in df_studies:
-
-            nct_id = self.deep_get(study, "protocolSection.identificationModule.nctId")
+        for idx, study in df_studies.iterrows():
+            nct_index = SINGLE_FIELDS['nct_id']
+            nct_id = study.get(nct_index)
+            
             if not nct_id:
-                self.log.warning("Study missing NCT ID, skipping")  # log page and index
+                self.log.warning(f"Study missing NCT ID, skipping {idx}")  
                 continue
 
             study_key = self.generate_key(nct_id)
@@ -153,18 +137,18 @@ class Transformer:
         # load
         return df_studies, df_sponsors, df_study_sponsors
 
-    def extract_study_fields(self, study_key: str, study_df: dict) -> Dict:
+    def extract_study_fields(self, study_key: str, study_data: pd.Series) -> Dict:
         study_record = dict()
 
         study_record["study_key"] = study_key
         for entity_key in SINGLE_FIELDS:
             index_field = SINGLE_FIELDS.get(entity_key)
 
-            study_record[entity_key] = self.deep_get(study_df, index_field)
+            study_record[entity_key] = study_data.get(index_field)
 
         return study_record
 
-    def extract_sponsors(self, study_key: str, study_data: Dict):
+    def extract_sponsors(self, study_key: str, study_data: pd.Series):
         """
         Extract sponsors from a single study.
         Args:
@@ -178,55 +162,62 @@ class Transformer:
         study_sponsors = []
 
         # Extract lead sponsor
-        lead_sponsor_index = "protocolSection.sponsorCollaboratorsModule.leadSponsor"
-        lead_sponsor = self.deep_get(study_data, lead_sponsor_index)
+        lead_sponsor_index = NESTED_FIELDS["sponsor"]["index_field"]
 
-        if lead_sponsor:
+        # sponsor name and class are scalar values and MUST be extracted directly
+        lead_sponsor_name = study_data.get(f'{lead_sponsor_index}.name')
+        lead_sponsor_class = study_data.get(f'{lead_sponsor_index}.class')
+
+        if pd.notna(lead_sponsor_name) and pd.notna(lead_sponsor_class):
             sponsor_key = self.generate_key(
-                lead_sponsor.get("name"), lead_sponsor.get("class")
+                lead_sponsor_name, lead_sponsor_class
             )
-
             sponsors.append(
                 {
                     "sponsor_key": sponsor_key,
-                    "name": lead_sponsor.get("name"),
-                    "sponsor_class": lead_sponsor.get("class"),
+                    "name": lead_sponsor_name,
+                    "sponsor_class": lead_sponsor_class,
                 }
             )
 
             study_sponsors.append(
                 {"study_key": study_key, "sponsor_key": sponsor_key, "is_lead": True}
             )
+        else:
+            print("No lead sponsor found for idx")
 
-        # Extract collaborators
-        collaborators_path = "protocolSection.sponsorCollaboratorsModule.collaborators"
-        collaborators_list = self.deep_get(study_data, collaborators_path) or []
+        # # Extract collaborators
+        collaborators_index = NESTED_FIELDS["collaborators"]["index_field"]
+        collaborators_list = study_data.get(collaborators_index)
 
-        for collaborator in collaborators_list:
-            sponsor_key = self.generate_key(
-                collaborator.get("name"), collaborator.get("class")
-            )
+        if collaborators_list is not None and len(collaborators_list) > 0:
+            for collaborator in collaborators_list:
+                sponsor_key = self.generate_key(
+                    collaborator.get("name"), collaborator.get("class")
+                )
 
-            sponsors.append(
-                {
-                    "sponsor_key": sponsor_key,
-                    "name": collaborator.get("name"),
-                    "sponsor_class": collaborator.get("class"),
-                }
-            )
+                sponsors.append(
+                    {
+                        "sponsor_key": sponsor_key,
+                        "name": collaborator.get("name"),
+                        "sponsor_class": collaborator.get("class"),
+                    }
+                )
 
-            study_sponsors.append(
-                {"study_key": study_key, "sponsor_key": sponsor_key, "is_lead": False}
-            )
+                study_sponsors.append(
+                    {"study_key": study_key, "sponsor_key": sponsor_key, "is_lead": False}
+                )
 
         return sponsors, study_sponsors
 
-    def extract_conditions(self, study_key: str, study_data: Dict) -> Tuple:
+
+    def extract_conditions(self, study_key: str, study_data: pd.Series) -> Tuple:
         conditions = []
         study_conditions = []
 
         conditions_index = NESTED_FIELDS["conditions"]["index_field"]
-        conditions_list = self.deep_get(study_data, conditions_index)
+        conditions_list = study_data.get(conditions_index)
+
 
         for condition in conditions_list:
             condition_key = self.generate_key(condition)
@@ -244,12 +235,12 @@ class Transformer:
 
         return conditions, study_conditions
 
-    def extract_keywords(self, study_key: str, study_data: Dict) -> Tuple:
+    def extract_keywords(self, study_key: str, study_data: pd.Series) -> Tuple:
         keywords = []
         study_keywords = []
 
         keywords_index = NESTED_FIELDS["keywords"]["index_field"]
-        keywords_list = self.deep_get(study_data, keywords_index)
+        keywords_list = study_data.get(keywords_index)
 
         for keyword in keywords_list:
             keyword_key = self.generate_key(keyword)
@@ -265,12 +256,12 @@ class Transformer:
 
         return keywords, study_keywords
 
-    def extract_arm_groups(self, study_key: str, study_data: Dict) -> Tuple[List, List]:
+    def extract_arm_groups(self, study_key: str, study_data: pd.Series) -> Tuple[List, List]:
         study_arms = []
         study_arms_interventions = []
 
         study_arms_index = NESTED_FIELDS["arm_groups"]["index_field"]
-        study_arms_list = self.deep_get(study_data, study_arms_index) or []
+        study_arms_list = study_data.get(study_arms_index)
 
         for study_arm in study_arms_list:
             study_arm_key = self.generate_key(study_key, study_arm.get("label"))
@@ -298,13 +289,13 @@ class Transformer:
 
         return study_arms, study_arms_interventions
 
-    def extract_interventions(self, study_key: str, study_data: Dict) -> Tuple:
+    def extract_interventions(self, study_key: str, study_data: pd.Series) -> Tuple:
         interventions = []
         study_interventions = []
         intervention_other_names = []
 
         interventions_index = NESTED_FIELDS["interventions"]["index_field"]
-        interventions_list = self.deep_get(study_data, interventions_index) or []
+        interventions_list = study_data.get(interventions_index)
 
         for intervention in interventions_list:
             intervention_key = self.generate_key(study_key, intervention.get("name"))
@@ -336,50 +327,50 @@ class Transformer:
 
         return interventions, intervention_other_names, study_interventions
 
-    def extract_locations(self, study_key: str, study_data: Dict) -> Tuple:
+    def extract_locations(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_officials(self, study_key: str, study_data: Dict) -> Tuple:
+    def extract_officials(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_outcomes(self, study_key: str, study_data: Dict) -> Tuple:
+    def extract_outcomes(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_see_also(self, study_key: str, study_data: Dict) -> Tuple:
+    def extract_see_also(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_study_phases(self, study_key: str, study_data: Dict) -> Tuple:
+    def extract_study_phases(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_age_group(self, study_key: str, study_data: Dict) -> Tuple:
+    def extract_age_group(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_ipd_info_types(self, study_key: str, study_data: Dict) -> Tuple:
+    def extract_ipd_info_types(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_id_infos(self, study_key: str, study_data: Dict) -> Tuple:
+    def extract_id_infos(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_nct_id_aliases(self, study_key: str, study_data: Dict) -> Tuple:
+    def extract_nct_id_aliases(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_condition_mesh(self, study_key: str, study_data: Dict) -> Tuple:
+    def extract_condition_mesh(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_intervention_mesh(self, study_key: str, study_data: Dict) -> Tuple:
+    def extract_intervention_mesh(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_large_documents(self, study_key: str, study_data: Dict) -> Tuple:
+    def extract_large_documents(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_unposted_events(self, study_key: str, study_data: Dict) -> Tuple:
+    def extract_unposted_events(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_violation_events(self, study_key: str, study_data: Dict) -> Tuple:
+    def extract_violation_events(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_removed_countries(self, study_key: str, study_data: Dict) -> Tuple:
+    def extract_removed_countries(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
 
-    def extract_submission_infos(self, study_key: str, study_data: Dict) -> Tuple:
+    def extract_submission_infos(self, study_key: str, study_data: pd.Series) -> Tuple:
         pass
