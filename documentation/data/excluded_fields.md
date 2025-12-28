@@ -165,3 +165,14 @@ It is the responsibility of the sponsor or investigator to ensure that the study
 * ESTIMATED - Estimated
 
 - **Reason**: Field not clearly described. can't determine analytical value
+
+
+## contactsLocationsModule
+
+### overall_officials
+- **Index Field:**  `protocolSection.contactsLocationsModule.overallOfficials`
+- **Definition**:  Person(s) responsible for the overall scientific leadership of the protocol, including study principal investigator.
+- **DataType**: Official[]
+- **Reason**: Officials lack contact information and serve administrative/ oversight purposes only. patient matching relies on location contacts, not officials
+
+

@@ -118,24 +118,6 @@ NESTED_FIELDS = {
         "field_name": "keyword",
         "transformer_method": "extract_keywords",
     },
-    "arm_groups": {
-        "index_field": "protocolSection.armsInterventionsModule.armGroups",
-        "object_type": "array_of_dicts",
-        "table_name": "study_arm_groups",
-        "fields": [
-            ("arm_group_label", "label"),
-            ("arm_group_type", "type"),
-            ("arm_group_desc", "description"),
-        ],
-        "nested": {
-            "interventionNames": {
-                "object_type": "nested_simple_array",
-                "bridge_table_name": "arm_group_interventions",
-                "field_name": "intervention_name",
-            },
-            "transformer_method": "extract_arm_groups",
-        },
-    },
     "interventions": {
         "index_field": "protocolSection.armsInterventionsModule.interventions",
         "object_type": "array_of_dicts",
@@ -144,18 +126,36 @@ NESTED_FIELDS = {
             ("intervention_desc", "description"),
             ("intervention_type", "type"),
         ],
-        "nested": {
-            "otherNames": {
-                "object_type": "nested_simple_array",
-                "table_name": "interventions",
-                "bridge_table_name": "bridge_table_name",
-            }
-        },
         "table_name": "interventions",
         "bridge_table_name": "bridge_study_interventions",
         "transformer_method": "extract_interventions",
     },
-    "design_who_masked": "protocolSection.designModule.designInfo.maskingInfo.whoMasked",
+    "arm_groups": {
+        "index_field": "protocolSection.armsInterventionsModule.armGroups",
+        "object_type": "array_of_dicts",
+        "table_name": "study_arm_group_interventions",
+        "fields": [
+            ("arm_group_label", "label"),
+            ("arm_group_type", "type"),
+            ("arm_group_desc", "description"),
+        ],
+        "transformer_method": "extract_arm_groups",
+    },
+
+    "central_contacts": {
+        "index_field": "protocolSection.contactsLocationsModule.centralContacts",
+        "object_type": "array_of_dicts",
+        "table_name": "contacts",
+        "bridge_table_name": "study_contacts",
+        "fields": [
+            ("name", "name"),
+            ("role", "role"),
+            ("email", "email"),
+            ("phone", "phone"),
+            ("phoneExt", "phoneExt"),
+        ],
+        "transformer_method": "extract_central_contacts",
+    },
     "locations": {
         "index_field": "protocolSection.contactsLocationsModule.locations",
         "object_type": "array_of_dicts",
@@ -174,6 +174,7 @@ NESTED_FIELDS = {
                 "object_type": "simple_dict",
                 "fields": ["lat", "lon"],
             },
+            #contacts are saved as a JSON blob
             "contacts": {
                 "object_type": "nested_array_of_dicts",
                 "table_name": "contacts",
@@ -190,28 +191,8 @@ NESTED_FIELDS = {
         },
         "transformer_method": "extract_locations",
     },
-    "central_contacts": {
-        "index_field": "protocolSection.contactsLocationsModule.centralContacts",
-        "object_type": "array_of_dicts",
-        "table_name": "contacts",
-        "bridge_table_name": "study_contacts",
-        "fields": [
-            ("name", "name"),
-            ("role", "role"),
-            ("email", "email"),
-            ("phone", "phone"),
-            ("phoneExt", "phoneExt"),
-        ],
-        "transformer_method": "extract_contacts",
-    },
-    "overall_officials": {
-        "index_field": "protocolSection.contactsLocationsModule.overallOfficials",
-        "object_type": "array_of_dicts",
-        "table_name": "investigators",
-        "bridge_table_name": "study_investigators",
-        "fields": [("name", "name"), ("affiliation", "affiliation"), ("role", "role")],
-        "transformer_method": "extract_officials",
-    },
+
+
     "primary_outcomes": {
         "index_field": "protocolSection.outcomesModule.primaryOutcomes",
         "object_type": "array_of_dicts",

@@ -1,5 +1,5 @@
-DATA EXTRACTION NOTES - JSON Normalization Behavior
-===================================================
+DATA EXTRACTION NOTES - JSON Normalization 
+==========================================
 
 When using pd.json_normalize() on the ClinicalTrials.gov API response,
 nested structures are flattened differently based on their type:
