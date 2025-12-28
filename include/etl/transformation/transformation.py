@@ -6,7 +6,7 @@ import hashlib
 import json
 
 from transformer_config import SINGLE_FIELDS, NESTED_FIELDS
-from data_cleaning import Cleaner
+from data_quality import DataQualityHandler
 from airflow.utils.context import Context
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
@@ -18,7 +18,7 @@ class Transformer:
         self.log = logging.getLogger("airflow.task")
 
         self.s3 = s3_dest_hook or S3Hook(aws_conn_id="aws_airflow")
-        self.cleaner = Cleaner()
+        self.dq_handler = DataQualityHandler()
 
     @staticmethod
     def generate_key(*args) -> str:
@@ -425,56 +425,61 @@ class Transformer:
 
     def extract_locations(self, idx: Hashable, study_key: str, study_data: pd.Series) -> Tuple:
         """
-        Extract locations and stores location contact as JSON blob.
-
-        NOTE: Officials are stored denormalized as JSON since not used for filtering/analysis.
-        Avoids snowflaking the schema while preserving all contact information for downstream applications.
+        Extract locations with status resolution
         """
         locations = []
         study_locations = []
 
+
         locations_index = NESTED_FIELDS["locations"]["index_field"]
         locations_list = study_data.get(locations_index)
 
-
         if isinstance(locations_list, (list, np.ndarray)) and len(locations_list) > 0:
+            location_groups = {}
 
             for location in locations_list:
                 facility = location.get("facility")
                 city = location.get("city")
                 state = location.get("state")
                 country = location.get("country")
-
                 location_key = self.generate_key(facility, city, state, country)
+
+                if location_key not in location_groups:
+                    location_groups[location_key] = []
+                location_groups[location_key].append(location)
+
+            for location_key, location_entries in location_groups.items():
+                first_entry = location_entries[0]
 
                 curr_location = {
                     "location_key": location_key,
-                    "status": location.get("status"),
-                    "facility": facility,
-                    "city": city,
-                    "state": state,
-                    "country": country,
-                    "contacts": location.get("contacts"),  # json blob
+                    "facility": first_entry.get("facility"),
+                    "city": first_entry.get("city"),
+                    "state": first_entry.get("state"),
+                    "country": first_entry.get("country"),
+                    "contacts": first_entry.get("contacts"),
                 }
 
-                geopoint = location.get("geoPoint")
-                if isinstance(geopoint, (dict, np.ndarray)) and len(geopoint) > 0:
-                    curr_location["lat"] = geopoint.get("lat"),
-                    curr_location["lon"] = geopoint.get("lon")
+                geopoint = first_entry.get("geoPoint")
+                if isinstance(geopoint, dict) and geopoint:
+                    curr_location["lat"] = float(geopoint.get("lat")) if geopoint.get("lat") else None
+                    curr_location["lon"] = float(geopoint.get("lon")) if geopoint.get("lon") else None
 
                 locations.append(curr_location)
 
+                # Resolve location status using overall study status
+                statuses = [loc.get("status") for loc in location_entries if loc.get("status")]
+                unique_statuses = set(statuses)
 
-            study_locations.append(
-                    {
-                        "study_key": study_key,
-                        "location_key": location_key,
-                    }
-                )
+                resolved_status = self.dq_handler.resolve_location_status(unique_statuses)
+
+                study_locations.append({
+                    "study_key": study_key,
+                    "location_key": location_key,
+                    "status": resolved_status
+                })
 
         return locations, study_locations
-
-
 
 
     def extract_outcomes(self, study_key: str, study_data: pd.Series) -> Tuple:

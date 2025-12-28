@@ -191,6 +191,33 @@ NESTED_FIELDS = {
         },
         "transformer_method": "extract_locations",
     },
+    #REFERENCES MODULE
+    "references": {
+        "index_field": "protocolSection.referencesModule.references",
+        "object_type": "array_of_dicts",
+        "table_name": "study_publications",
+        "extract_fields": ["pmid", "object_type", "citation"],
+    },
+    "retractions": {
+        "index_field": "protocolSection.referencesModule.retractions",
+        "object_type": "array_of_dicts",
+        "table_name": "study_retractions",
+        "fields": [("pmid", "pmid"), ("status", "status")],
+        "transformer_method": "extract_outcomes",
+    },
+    "see_also": {
+        "index_field": "protocolSection.referencesModule.seeAlsoLinks",
+        "object_type": "array_of_dicts",
+        "table_name": "study_see_also",
+        "fields": [("label", "label"), ("url", "url")],
+        "transformer_method": "extract_see_also",
+    },
+
+
+
+
+
+
 
 
     "primary_outcomes": {
@@ -229,26 +256,7 @@ NESTED_FIELDS = {
         "transformer_method": "extract_outcomes",
         "outcome_type": "OTHER",
     },
-    "references": {
-        "index_field": "protocolSection.referencesModule.references",
-        "object_type": "array_of_dicts",
-        "table_name": "study_publications",
-        "extract_fields": ["pmid", "object_type", "citation"],
-    },
-    "retractions": {
-        "index_field": "protocolSection.referencesModule.retractions",
-        "object_type": "array_of_dicts",
-        "table_name": "study_retractions",
-        "fields": [("pmid", "pmid"), ("status", "status")],
-        "transformer_method": "extract_outcomes",
-    },
-    "see_also": {
-        "index_field": "protocolSection.referencesModule.seeAlsoLinks",
-        "object_type": "array_of_dicts",
-        "table_name": "study_see_also",
-        "fields": [("label", "label"), ("url", "url")],
-        "transformer_method": "extract_see_also",
-    },
+
     "phases": {
         "index_field": "protocolSection.designModule.phases",
         "object_type": "simple_array",
@@ -257,14 +265,7 @@ NESTED_FIELDS = {
         "field_name": "phase",
         "transformer_method": "extract_study_phases",
     },
-    "std_ages": {
-        "index_field": "protocolSection.eligibilityModule.stdAges",
-        "object_type": "simple_array",
-        "table_name": "age_groups",
-        "bridge_table_name": "study_age_groups",
-        "field_name": "age_group",
-        "transformer_method": "extract_age_group",
-    },
+
     "ipd_info_types": {
         "index_field": "protocolSection.ipdSharingStatementModule.infoTypes",
         "object_type": "simple_array",

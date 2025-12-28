@@ -212,7 +212,7 @@
 **Decision**: `armGroups[].interventionNames` as the source of truth for arm interventions and interventions[] as the source of truth interventions
 
 **Rationale**:
-1. Matches analytical workflow (arm → intervention, not reverse)
+1. Matches analytical workflow (arm -> intervention, not reverse)
 2. User-entered data may have inconsistencies between the two lists
 3. Avoids reconciliation logic and potential mismatches from bidirectional data quality issues
 
@@ -262,6 +262,19 @@
   - `TERMINATED` - Terminated
   - `WITHDRAWN` - Withdrawn
   - `AVAILABLE` - Available
+
+    
+**LOCATION STATUS RESOLUTION**
+
+Location-level statuses can be inconsistent/outdated. Use study-level overall_status as the authoritative source:
+
+1. Study COMPLETED/TERMINATED -> inherit study status (can't recruit)
+2. Study NOT_YET_RECRUITING -> inherit study status (hasn't started)
+3. Study RECRUITING + conflicting locations AND one is RECRUITING -> UNCLEAR
+4. Study RECRUITING + no location says RECRUITING -> use location status
+
+This ensures patient matching prioritizes study-level recruitment status while flagging ambiguous cases.
+"""
 
 ##### `city`
 - **Description**: City
