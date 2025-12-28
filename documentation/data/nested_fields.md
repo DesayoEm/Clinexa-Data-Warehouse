@@ -12,6 +12,8 @@
 - `protocolSection.sponsorCollaboratorsModule.leadSponsor`
 - `protocolSection.sponsorCollaboratorsModule.collaborators[]`
 
+**NOTE**: *sponsor name and class are scalar values and MUST be extracted directly*
+
 **Object Type**: Simple dict (leadSponsor) / Array of dicts (collaborators)
 
 **Description**: Organizations responsible for the study.
@@ -246,6 +248,21 @@
 - **Data Type**: Text
 - **Limit**: 254 characters
 
+
+##### `status`
+- **Description**: Individual Site Status 
+- **Data Type**: Enum(RecruitmentStatus)
+- **Enum Values**:
+  - `ACTIVE_NOT_RECRUITING` - Active, not recruiting
+  - `COMPLETED` - Completed
+  - `ENROLLING_BY_INVITATION` - Enrolling by invitation
+  - `NOT_YET_RECRUITING` - Not yet recruiting
+  - `RECRUITING` - Recruiting
+  - `SUSPENDED` - Suspended
+  - `TERMINATED` - Terminated
+  - `WITHDRAWN` - Withdrawn
+  - `AVAILABLE` - Available
+
 ##### `city`
 - **Description**: City
 - **Data Type**: GeoName
@@ -262,31 +279,17 @@
 - **Description**: Lat and Lon
 - **Data Type**: Dict
 
-##### `status`
-- **Description**: Individual Site Status 
-- **Data Type**: Enum(RecruitmentStatus)
-- **Enum Values**:
-  - `ACTIVE_NOT_RECRUITING` - Active, not recruiting
-  - `COMPLETED` - Completed
-  - `ENROLLING_BY_INVITATION` - Enrolling by invitation
-  - `NOT_YET_RECRUITING` - Not yet recruiting
-  - `RECRUITING` - Recruiting
-  - `SUSPENDED` - Suspended
-  - `TERMINATED` - Terminated
-  - `WITHDRAWN` - Withdrawn
-  - `AVAILABLE` - Available
-
 #### Nested Fields
 ##### `contacts`
-###### modelled at central contacts level
-- #### Model Mapping
-- **Target Table**: `contacts`
-- **Bridge Table**: `bridge_study_site_contacts` 
+--- Saved as a JSON blob
 
+Extract locations and stores location contact as JSON blob.
+NOTE: Officials are stored denormalized as JSON since not used for filtering/analysis.
+Avoids snowflaking the schema while preserving all contact information for downstream applications.
 
 #### Model Mapping
-- **Target Table**: `study_sites`
-- **Bridge Table**: `bridge_study_sites` 
+- **Target Table**: `locations`
+- **Bridge Table**: `bridge_study_locations` 
 
 
 
@@ -336,64 +339,11 @@
 
 - **Target Table**: `dim_contacts`
 - **Bridge Table**: `bridge_study_contacts` (study_key, contact_key)
-- **Surrogate Key**: `hash(study_key, name, role, contact_type)`
-- **Contact Type**: `CENTRAL` (discriminator)
-- 
+- **Surrogate Key**: `hash(study_key, name, role, phone)`
 
 ---
 
-### site_contacts
 
-**Index Field:** `protocolSection.contactsLocationsModule.locations[].contacts[]`
-
-**Definition**: Contact person(s) for enrollment questions at a specific facility. Required if no central contact provided.
-
-**Object Type**: Nested array of dicts (under locations)
-
-**Cardinality**: 0 to many per site
-
----
-
-#### Fields
-
-(same as central_contacts)
-
----
-
-#### Dimensional Model Mapping
-
-- **Target Table**: `dim_contacts`
-- **Surrogate Key**: `hash(site_key, name, role, contact_type)`
-- **Contact Type**: `SITE` (discriminator)
-- **Bridge Table**: `bridge_site_contacts` (site_key, contact_key)
-
-    "central_contacts": {
-        **Index Field:** "protocolSection.contactsLocationsModule.centralContacts",
-        **Object_type**: "array_of_dicts",
-        **Table_name**: "contacts",
-        **Bridge_table_name**: "study_contacts",
-        **Fields**: [
-            ("name", "name"),
-            ("role", "role"),
-            ("email", "email"),
-            ("phone", "phone"),
-            ("phoneExt", "phoneExt")
-        ],
-        "transformer_method": "extract_contacts"
-    },
-
-    "overall_officials": {
-        **Index Field:** "protocolSection.contactsLocationsModule.overallOfficials",
-        **Object_type**: "array_of_dicts",
-        **Table_name**: "investigators",
-        **Bridge_table_name**: "study_investigators",
-        **Fields**: [
-            ("name", "name"),
-            ("affiliation", "affiliation"),
-            ("role", "role")
-        ],
-        "transformer_method": "extract_officials"
-    },
 
     "primary_outcomes": {
         **Index Field:** "protocolSection.outcomesModule.primaryOutcomes",

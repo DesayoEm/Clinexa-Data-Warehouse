@@ -19,6 +19,33 @@
 - **DataType**: Enum(OrgStudyIdType)
 - **Reason**: Missing from most rows and has no analytical value
 
+
+## Organisation
+
+### org_name
+- **Index Field:** `protocolSection.identificationModule.organization.fullName`
+- **Definition**: A (registered) organization (typically the Responsible Party) that sponsors the clinical  trial (study)
+- **Limit**: 5,000  characters.
+- **Reason**: Information provided in `protocolSection.sponsorCollaboratorsModule`
+- 
+### org_class
+- **Index Field:** `protocolSection.identificationModule.organization.class`
+- **Definition**: Organization type
+- **DataType**: Dict{Enum(AgencyClass)} 
+
+**Source Values**: 
+- * NIH - NIH
+- * FED - FED
+- * OTHER_GOV - OTHER_GOV
+- * INDIV - INDIV
+- * INDUSTRY - INDUSTRY
+- * NETWORK - NETWORK
+- * AMBIG - AMBIG
+- * OTHER - OTHER
+- * UNKNOWN - UNKNOWN
+
+- **Reason**: Information provided in `protocolSection.sponsorCollaboratorsModule`
+
 ## Design
 ### design_masking_desc
 - **Index Field:** `protocolSection.designModule.designInfo.maskingInfo.maskingDescription`
@@ -138,3 +165,14 @@ It is the responsibility of the sponsor or investigator to ensure that the study
 * ESTIMATED - Estimated
 
 - **Reason**: Field not clearly described. can't determine analytical value
+
+
+## contactsLocationsModule
+
+### overall_officials
+- **Index Field:**  `protocolSection.contactsLocationsModule.overallOfficials`
+- **Definition**:  Person(s) responsible for the overall scientific leadership of the protocol, including study principal investigator.
+- **DataType**: Official[]
+- **Reason**: Officials lack contact information and serve administrative/ oversight purposes only. patient matching relies on location contacts, not officials
+
+
