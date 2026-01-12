@@ -77,7 +77,7 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
         Six-element tuple containing:
             - arm_groups: Arm group dimension records
             - arm_interventions: Bridge table linking arms to intervention names
-            - intervention_names: Primary intervention dimension records
+            - interventions: Primary intervention dimension records
             - study_interventions: Bridge table for primary interventions
             - other_intervention_names: Alternate name intervention records
             - study_intervention_aliases: Bridge table for alternate names
@@ -89,7 +89,7 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
     arm_groups = []
     arm_interventions = []
 
-    intervention_names = []
+    interventions = []
     study_interventions = []
     other_intervention_names = []
     study_intervention_aliases = []
@@ -151,7 +151,7 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
                 main_name
             )  # Only name is used to enable matching on both arms and interventions
 
-            intervention_names.append(
+            interventions.append(
                 {
                     "intervention_key": intervention_key,
                     "intervention_name": main_name,
@@ -201,7 +201,7 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
     return (
         arm_groups,
         arm_interventions,
-        intervention_names,
+        interventions,
         study_interventions,
         other_intervention_names,
         study_intervention_aliases,

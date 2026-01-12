@@ -152,14 +152,14 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
     (
         arm_groups,
         arm_interventions,
-        intervention_names,
+        interventions,
         study_interventions,
         other_intervention_names,
         study_intervention_aliases,
     ) = transform_arms_interventions_module(study_key, study)
     result["arm_groups"].extend(arm_groups)
     result["arm_interventions"].extend(arm_interventions)
-    result["intervention_names"].extend(intervention_names)
+    result["interventions"].extend(interventions)
     result["study_interventions"].extend(study_interventions)
     result["other_intervention_names"].extend(other_intervention_names)
     result["study_intervention_aliases"].extend(study_intervention_aliases)
@@ -309,7 +309,7 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
         study_keywords=result["study_keywords"],
         arm_groups=result["arm_groups"],
         arm_interventions=result["arm_interventions"],
-        intervention_names=result["intervention_names"],
+        interventions=result["interventions"],
         study_interventions=result["study_interventions"],
         other_intervention_names=result["other_intervention_names"],
         study_intervention_aliases=result["study_intervention_aliases"],
@@ -404,7 +404,7 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> List[pd.DataFrame]:
     # armsInterventionsModule
     df_arm_groups = pd.DataFrame(results["arm_groups"])
     df_arm_interventions = pd.DataFrame(results["arm_interventions"])
-    df_intervention_names = pd.DataFrame(results["intervention_names"])
+    df_interventions = pd.DataFrame(results["interventions"])
     df_study_interventions = pd.DataFrame(results["study_interventions"])
     df_other_intervention_names = pd.DataFrame(results["other_intervention_names"])
     df_study_intervention_aliases = pd.DataFrame(results["study_intervention_aliases"])
@@ -508,9 +508,9 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> List[pd.DataFrame]:
     df_collaborators = df_collaborators.drop_duplicates(subset=["collaborator_key"])
     df_conditions = df_conditions.drop_duplicates(subset=["condition_key"])
     df_keywords = df_keywords.drop_duplicates(subset=["keyword_key"])
-    df_intervention_names = df_intervention_names.drop_duplicates(
-        subset=["intervention_key"]
-    )
+    df_interventions = df_interventions.drop_duplicates(subset=["intervention_key"])
+    df_other_intervention_names = df_other_intervention_names.drop_duplicates(subset=["intervention_key"])
+
 
     df_locations = df_locations.drop_duplicates(subset=["location_key"])
     df_central_contacts = df_central_contacts.drop_duplicates(subset=["contact_key"])
@@ -529,7 +529,7 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> List[pd.DataFrame]:
         df_study_keywords,
         df_arm_groups,
         df_arm_interventions,
-        df_intervention_names,
+        df_interventions,
         df_study_interventions,
         df_other_intervention_names,
         df_study_intervention_aliases,

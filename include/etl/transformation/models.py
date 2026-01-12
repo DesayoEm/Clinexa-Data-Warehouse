@@ -25,7 +25,7 @@ class StudyResult:
     study_keywords: List
     arm_groups: List
     arm_interventions: List
-    intervention_names: List
+    interventions: List
     study_interventions: List
     other_intervention_names: List
     study_intervention_aliases: List
@@ -39,6 +39,7 @@ class StudyResult:
     references: List
     link_references: List
     ipd_references: List
+
     outcome_measures: List
     outcome_measure_groups: List
     outcome_measure_denom_units: List
@@ -59,6 +60,7 @@ class StudyResult:
     other_events: List
     other_event_stats: List
     violations: List
+
     conditions_mesh: List
     study_conditions_mesh: List
     conditions_mesh_ancestors: List
