@@ -153,16 +153,16 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
         arm_groups,
         arm_interventions,
         intervention_names,
-        study_intervention_names,
-        other_interventions_names,
-        study_other_interventions_names,
+        study_interventions,
+        other_intervention_names,
+        study_intervention_aliases,
     ) = transform_arms_interventions_module(study_key, study)
     result["arm_groups"].extend(arm_groups)
     result["arm_interventions"].extend(arm_interventions)
     result["intervention_names"].extend(intervention_names)
-    result["study_intervention_names"].extend(study_intervention_names)
-    result["other_interventions_names"].extend(other_interventions_names)
-    result["study_other_interventions_names"].extend(study_other_interventions_names)
+    result["study_interventions"].extend(study_interventions)
+    result["other_intervention_names"].extend(other_intervention_names)
+    result["study_intervention_aliases"].extend(study_intervention_aliases)
 
     # outcomesModule
     primary_outcomes, secondary_outcomes, other_outcomes = transform_outcomes_module(
@@ -310,9 +310,9 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
         arm_groups=result["arm_groups"],
         arm_interventions=result["arm_interventions"],
         intervention_names=result["intervention_names"],
-        study_intervention_names=result["study_intervention_names"],
-        other_interventions_names=result["other_interventions_names"],
-        study_other_interventions_names=result["study_other_interventions_names"],
+        study_interventions=result["study_interventions"],
+        other_intervention_names=result["other_intervention_names"],
+        study_intervention_aliases=result["study_intervention_aliases"],
         primary_outcomes=result["primary_outcomes"],
         secondary_outcomes=result["secondary_outcomes"],
         other_outcomes=result["other_outcomes"],
@@ -405,11 +405,9 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> List[pd.DataFrame]:
     df_arm_groups = pd.DataFrame(results["arm_groups"])
     df_arm_interventions = pd.DataFrame(results["arm_interventions"])
     df_intervention_names = pd.DataFrame(results["intervention_names"])
-    df_study_intervention_names = pd.DataFrame(results["study_intervention_names"])
-    df_other_interventions_names = pd.DataFrame(results["other_interventions_names"])
-    df_study_other_interventions_names = pd.DataFrame(
-        results["study_other_interventions_names"]
-    )
+    df_study_interventions = pd.DataFrame(results["study_interventions"])
+    df_other_intervention_names = pd.DataFrame(results["other_intervention_names"])
+    df_study_intervention_aliases = pd.DataFrame(results["study_intervention_aliases"])
 
     # outcomesModule
     df_primary_outcomes = pd.DataFrame(results["primary_outcomes"])
@@ -532,9 +530,9 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> List[pd.DataFrame]:
         df_arm_groups,
         df_arm_interventions,
         df_intervention_names,
-        df_study_intervention_names,
-        df_other_interventions_names,
-        df_study_other_interventions_names,
+        df_study_interventions,
+        df_other_intervention_names,
+        df_study_intervention_aliases,
         df_primary_outcomes,
         df_secondary_outcomes,
         df_other_outcomes,

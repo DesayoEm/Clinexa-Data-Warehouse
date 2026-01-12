@@ -26,9 +26,9 @@ class StudyResult:
     arm_groups: List
     arm_interventions: List
     intervention_names: List
-    study_intervention_names: List
-    other_interventions_names: List
-    study_other_interventions_names: List
+    study_interventions: List
+    other_intervention_names: List
+    study_intervention_aliases: List
     primary_outcomes: List
     secondary_outcomes: List
     other_outcomes: List
