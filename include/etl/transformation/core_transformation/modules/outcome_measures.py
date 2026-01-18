@@ -25,7 +25,7 @@ def transform_outcome_measures_module(study_key: str, study_data: pd.Series) -> 
             - outcome_measure_groups: Group definitions per outcome measure
             - outcome_measure_denom_units: Dimension table of unit types
             - outcome_measure_denom_counts: Sample sizes per group/unit
-            - outcome_measure_measurements: Result values with bounds and spread
+            - outcome_measure_groups_result:Group measurement value(s) for each outcome measure
             - outcome_measure_analyses: Statistical test results
             - outcome_measure_comparison_groups: Bridge table for analysis groups
 
@@ -35,7 +35,7 @@ def transform_outcome_measures_module(study_key: str, study_data: pd.Series) -> 
     outcome_measure_groups = []
     outcome_measure_denom_units = []
     outcome_measure_denom_counts = []
-    outcome_measure_measurements = []
+    outcome_measure_groups_result = []
     outcome_measure_analyses = []
     outcome_measure_comparison_groups = []
 
@@ -86,7 +86,7 @@ def transform_outcome_measures_module(study_key: str, study_data: pd.Series) -> 
 
                     outcome_measure_groups.append(
                         {
-                            "outcome_group_key": outcome_group_key,
+                            "group_key": outcome_group_key,
                             "study_key": study_key,
                             "outcome_measure_key": outcome_measure_key,
                             "group_id": group_id,
@@ -132,7 +132,7 @@ def transform_outcome_measures_module(study_key: str, study_data: pd.Series) -> 
                                     "study_key": study_key,
                                     "outcome_measure_key": outcome_measure_key,
                                     "denom_unit_key": denom_unit_key,
-                                    "denom_group_key": denom_count_group_key,
+                                    "group_key": denom_count_group_key,
                                     "group_id": denom_count_group_id,
                                     "denom_value": denom_count.get("value"),
                                 }
@@ -160,9 +160,9 @@ def transform_outcome_measures_module(study_key: str, study_data: pd.Series) -> 
                                         study_key, outcome_measure_key, meas_group_id
                                     )  # group keys must be created the same way
 
-                                    outcome_measure_measurements.append(
+                                    outcome_measure_groups_result.append(
                                         {
-                                            "measurement_key": meas_group_key,
+                                            "group_key": meas_group_key,
                                             "outcome_measure_key": outcome_measure_key,
                                             "study_key": study_key,
                                             "group_id": meas_group_id,
@@ -229,7 +229,7 @@ def transform_outcome_measures_module(study_key: str, study_data: pd.Series) -> 
         outcome_measure_groups,
         outcome_measure_denom_units,
         outcome_measure_denom_counts,
-        outcome_measure_measurements,
+        outcome_measure_groups_result,
         outcome_measure_analyses,
         outcome_measure_comparison_groups,
     )

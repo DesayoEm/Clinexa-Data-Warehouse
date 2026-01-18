@@ -40,10 +40,10 @@ def transform_adverse_events_module(study_key: str, study_data: pd.Series) -> Tu
 
     events_index = NON_SCALAR_FIELDS["adverse_events"]["index_field"]
 
-    description = study_data.get(f"{events_index}.description")
+    description = study_data.get(f"{events_index}.description")  # not always available
     adverse_event_key = generate_key(study_key, description)
 
-    # AE fields are scalar
+    # scalar AE fields
     adverse_events.append(
         {
             "adverse_event_key": adverse_event_key,
@@ -86,8 +86,14 @@ def transform_adverse_events_module(study_key: str, study_data: pd.Series) -> Tu
         and len(serious_events_list) > 0
     ):
         for serious_event in serious_events_list:
-            term = serious_event.get("term")
+            term = serious_event.get("term").lower()
             serious_event_key = generate_key(study_key, adverse_event_key, term)
+
+            organ_system = serious_event.get("organSystem")
+            organ_system = organ_system.lower() if organ_system else None
+
+            assessment_type = serious_event.get("assessment")
+            assessment_type = assessment_type.upper() if assessment_type else None
 
             serious_events.append(
                 {
@@ -95,9 +101,9 @@ def transform_adverse_events_module(study_key: str, study_data: pd.Series) -> Tu
                     "adverse_event_key": adverse_event_key,
                     "study_key": study_key,
                     "term": term,
-                    "organ_system": serious_event.get("organSystem"),
+                    "organ_system": organ_system,
                     "source_vocab": serious_event.get("sourceVocabulary"),
-                    "assessment_type": serious_event.get("assessmentType"),
+                    "assessment_type": assessment_type,
                     "notes": serious_event.get("notes"),
                 }
             )
@@ -133,8 +139,15 @@ def transform_adverse_events_module(study_key: str, study_data: pd.Series) -> Tu
     other_events_list = study_data.get(f"{events_index}.otherEvents")
     if isinstance(other_events_list, (list, np.ndarray)) and len(other_events_list) > 0:
         for other_event in other_events_list:
+
             term = other_event.get("term")
             other_event_key = generate_key(study_key, adverse_event_key, term)
+
+            organ_system = other_event.get("organSystem")
+            organ_system = organ_system.lower() if organ_system else None
+
+            assessment_type = other_event.get("assessment")
+            assessment_type = assessment_type.upper() if assessment_type else None
 
             other_events.append(
                 {
@@ -142,9 +155,9 @@ def transform_adverse_events_module(study_key: str, study_data: pd.Series) -> Tu
                     "adverse_event_key": adverse_event_key,
                     "study_key": study_key,
                     "term": term,
-                    "organ_system": other_event.get("organSystem"),
+                    "organ_system": organ_system,
                     "source_vocab": other_event.get("sourceVocabulary"),
-                    "assessment_type": other_event.get("assessmentType"),
+                    "assessment_type": assessment_type,
                     "notes": other_event.get("notes"),
                 }
             )

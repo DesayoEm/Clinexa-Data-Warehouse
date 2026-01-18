@@ -44,7 +44,7 @@ class StudyResult:
     outcome_measure_groups: List
     outcome_measure_denom_units: List
     outcome_measure_denom_counts: List
-    outcome_measure_measurements: List
+    outcome_measure_groups_result: List
     outcome_measure_analyses: List
     outcome_measure_comparison_groups: List
     flow_groups: List
@@ -53,6 +53,7 @@ class StudyResult:
     flow_period_milestone_achievements: List
     df_flow_period_withdrawals: List
     flow_period_withdrawal_reasons: List
+
     adverse_events: List
     event_groups: List
     serious_events: List
@@ -60,7 +61,6 @@ class StudyResult:
     other_events: List
     other_event_stats: List
     violations: List
-
     conditions_mesh: List
     study_conditions_mesh: List
     conditions_mesh_ancestors: List

@@ -195,7 +195,7 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
         outcome_measure_groups,
         outcome_measure_denom_units,
         outcome_measure_denom_counts,
-        outcome_measure_measurements,
+        outcome_measure_groups_result,
         outcome_measure_analyses,
         outcome_measure_comparison_groups,
     ) = transform_outcome_measures_module(study_key, study)
@@ -203,7 +203,7 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
     result["outcome_measure_groups"].extend(outcome_measure_groups)
     result["outcome_measure_denom_units"].extend(outcome_measure_denom_units)
     result["outcome_measure_denom_counts"].extend(outcome_measure_denom_counts)
-    result["outcome_measure_measurements"].extend(outcome_measure_measurements)
+    result["outcome_measure_groups_result"].extend(outcome_measure_groups_result)
     result["outcome_measure_analyses"].extend(outcome_measure_analyses)
     result["outcome_measure_comparison_groups"].extend(
         outcome_measure_comparison_groups
@@ -327,7 +327,7 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
         outcome_measure_groups=result["outcome_measure_groups"],
         outcome_measure_denom_units=result["outcome_measure_denom_units"],
         outcome_measure_denom_counts=result["outcome_measure_denom_counts"],
-        outcome_measure_measurements=result["outcome_measure_measurements"],
+        outcome_measure_groups_result=result["outcome_measure_groups_result"],
         outcome_measure_analyses=result["outcome_measure_analyses"],
         outcome_measure_comparison_groups=result["outcome_measure_comparison_groups"],
         flow_groups=result["flow_groups"],
@@ -434,8 +434,8 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> List[pd.DataFrame]:
     df_outcome_measure_denom_counts = pd.DataFrame(
         results["outcome_measure_denom_counts"]
     )
-    df_outcome_measure_measurements = pd.DataFrame(
-        results["outcome_measure_measurements"]
+    df_outcome_measure_groups_result = pd.DataFrame(
+        results["outcome_measure_groups_result"]
     )
     df_outcome_measure_analyses = pd.DataFrame(results["outcome_measure_analyses"])
     df_outcome_measure_comparison_groups = pd.DataFrame(
@@ -509,11 +509,90 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> List[pd.DataFrame]:
     df_conditions = df_conditions.drop_duplicates(subset=["condition_key"])
     df_keywords = df_keywords.drop_duplicates(subset=["keyword_key"])
     df_interventions = df_interventions.drop_duplicates(subset=["intervention_key"])
-    df_other_intervention_names = df_other_intervention_names.drop_duplicates(subset=["intervention_key"])
-
+    df_other_intervention_names = df_other_intervention_names.drop_duplicates(
+        subset=["intervention_key"]
+    )
 
     df_locations = df_locations.drop_duplicates(subset=["location_key"])
     df_central_contacts = df_central_contacts.drop_duplicates(subset=["contact_key"])
+    df_arm_groups = df_arm_groups.drop_duplicates(subset=["study_key", "arm_group_key"])
+    df_arm_interventions = df_arm_interventions.drop_duplicates(
+        subset=["arm_intervention_key", "study_key", "arm_group_key"]
+    )
+    df_primary_outcomes = df_primary_outcomes.drop_duplicates(subset=["outcome_key"])
+    df_secondary_outcomes = df_secondary_outcomes.drop_duplicates(
+        subset=["outcome_key"]
+    )
+    df_other_outcomes = df_other_outcomes.drop_duplicates(subset=["outcome_key"])
+    df_central_contacts = df_central_contacts.drop_duplicates(subset=["contact_key"])
+    df_study_central_contacts = df_study_central_contacts.drop_duplicates(
+        subset=["contact_key", "study_key"]
+    )
+    df_locations = df_locations.drop_duplicates(subset=["location_key"])
+    df_study_locations = df_study_locations.drop_duplicates(
+        subset=["study_key", "location_key"]
+    )
+    df_references = df_references.drop_duplicates(subset=["ref_key"])
+    df_link_references = df_link_references.drop_duplicates(subset=["link_key"])
+    df_ipd_references = df_ipd_references.drop_duplicates(subset=["ipd_key"])
+
+    df_conditions_mesh = df_conditions_mesh.drop_duplicates(subset=["mesh_key"])
+    df_study_conditions_mesh = df_study_conditions_mesh.drop_duplicates(
+        subset=["mesh_key", "study_key"]
+    )
+    df_conditions_mesh_ancestors = df_conditions_mesh_ancestors.drop_duplicates(
+        subset=["ancestor_key"]
+    )
+    df_study_conditions_mesh_ancestors = (
+        df_study_conditions_mesh_ancestors.drop_duplicates(
+            subset=["ancestor_key", "study_key"]
+        )
+    )
+    df_conditions_browse_leaves = df_conditions_browse_leaves.drop_duplicates(
+        subset=["leaf_key"]
+    )
+    df_study_conditions_browse_leaves = (
+        df_study_conditions_browse_leaves.drop_duplicates(
+            subset=["leaf_key", "study_key"]
+        )
+    )
+    df_conditions_browse_branches = df_conditions_browse_branches.drop_duplicates(
+        subset=["branch_key"]
+    )
+    df_study_conditions_browse_branches = (
+        df_study_conditions_browse_branches.drop_duplicates(
+            subset=["branch_key", "study_key"]
+        )
+    )
+
+    df_interventions_mesh = df_interventions_mesh.drop_duplicates(subset=["mesh_key"])
+    df_study_interventions_mesh = df_study_interventions_mesh.drop_duplicates(
+        subset=["mesh_key", "study_key"]
+    )
+    df_interventions_mesh_ancestors = df_interventions_mesh_ancestors.drop_duplicates(
+        subset=["ancestor_key"]
+    )
+    df_study_interventions_mesh_ancestors = (
+        df_study_interventions_mesh_ancestors.drop_duplicates(
+            subset=["ancestor_key", "study_key"]
+        )
+    )
+    df_interventions_browse_leaves = df_interventions_browse_leaves.drop_duplicates(
+        subset=["leaf_key"]
+    )
+    df_study_interventions_browse_leaves = (
+        df_study_interventions_browse_leaves.drop_duplicates(
+            subset=["leaf_key", "study_key"]
+        )
+    )
+    df_interventions_browse_branches = df_interventions_browse_branches.drop_duplicates(
+        subset=["branch_key"]
+    )
+    df_study_interventions_browse_branches = (
+        df_study_interventions_browse_branches.drop_duplicates(
+            subset=["branch_key", "study_key"]
+        )
+    )
 
     return [
         df_studies,
@@ -547,7 +626,7 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> List[pd.DataFrame]:
         df_outcome_measure_groups,
         df_outcome_measure_denom_units,
         df_outcome_measure_denom_counts,
-        df_outcome_measure_measurements,
+        df_outcome_measure_groups_result,
         df_outcome_measure_analyses,
         df_outcome_measure_comparison_groups,
         df_flow_groups,

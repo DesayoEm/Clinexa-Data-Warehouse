@@ -46,7 +46,9 @@ def transform_outcomes_module(study_key: str, study_data: pd.Series) -> Tuple:
             outcome_description = primary_outcome.get("description")
             outcome_timeframe = primary_outcome.get("timeFrame")
 
-            outcome_key = generate_key(study_key, outcome_measure, outcome_description, outcome_timeframe)
+            outcome_key = generate_key(
+                study_key, outcome_measure, outcome_description, outcome_timeframe
+            )
 
             primary_outcomes.append(
                 {
@@ -70,7 +72,9 @@ def transform_outcomes_module(study_key: str, study_data: pd.Series) -> Tuple:
             outcome_description = secondary_outcome.get("description")
             outcome_timeframe = secondary_outcome.get("timeFrame")
 
-            outcome_key = generate_key(study_key, outcome_measure, outcome_description, outcome_timeframe)
+            outcome_key = generate_key(
+                study_key, outcome_measure, outcome_description, outcome_timeframe
+            )
 
             secondary_outcomes.append(
                 {
@@ -82,7 +86,6 @@ def transform_outcomes_module(study_key: str, study_data: pd.Series) -> Tuple:
                 }
             )
 
-
     other_outcomes_list = study_data.get(f"{outcomes_module_index}.otherOutcomes")
     if (
         isinstance(other_outcomes_list, (list, np.ndarray))
@@ -93,7 +96,9 @@ def transform_outcomes_module(study_key: str, study_data: pd.Series) -> Tuple:
             outcome_description = other_outcome.get("description")
             outcome_timeframe = other_outcome.get("timeFrame")
 
-            outcome_key = generate_key(study_key, outcome_measure, outcome_description, outcome_timeframe)
+            outcome_key = generate_key(
+                study_key, outcome_measure, outcome_description, outcome_timeframe
+            )
 
             other_outcomes.append(
                 {
