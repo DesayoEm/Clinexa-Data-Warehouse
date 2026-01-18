@@ -1,11 +1,6 @@
 from include.etl.transformation.core_transformation.modules.annotations import (
     transform_annotations_module,
 )
-from tests.unit.transformation.fixtures import (
-    study_key,
-    results_study_data,
-    empty_study_data,
-)
 
 
 def test_empty_data_returns_empty_list(study_key, empty_study_data):

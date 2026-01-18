@@ -1,12 +1,6 @@
 from include.etl.transformation.core_transformation.modules.sponsor_collaborator import (
     transform_sponsor_and_collaborators_module,
 )
-from tests.unit.transformation.fixtures import (
-    study_key,
-    full_study_data,
-    empty_study_data,
-    nct_id,
-)
 
 
 def test_empty_data_returns_empty_lists(nct_id, study_key, empty_study_data):

@@ -1,11 +1,6 @@
 from include.etl.transformation.core_transformation.modules.outcome_measures import (
     transform_outcome_measures_module,
 )
-from tests.unit.transformation.fixtures import (
-    study_key,
-    results_study_data,
-    empty_study_data,
-)
 
 
 def test_empty_data_returns_empty_lists(study_key, empty_study_data):

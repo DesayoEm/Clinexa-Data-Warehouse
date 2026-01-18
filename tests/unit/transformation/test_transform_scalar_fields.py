@@ -1,11 +1,6 @@
 from include.etl.transformation.core_transformation.study_transformation import (
     transform_scalar_fields,
 )
-from tests.unit.transformation.fixtures import (
-    study_key,
-    minimal_study_data,
-    full_study_data,
-)
 
 
 def test_transform_scalar_fields_minimal(study_key, minimal_study_data):

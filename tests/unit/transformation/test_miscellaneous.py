@@ -1,7 +1,5 @@
 import pandas as pd
 import numpy as np
-from tests.unit.transformation.fixtures import study_key
-
 from include.etl.transformation.core_transformation.modules.conditions import (
     transform_conditions_module,
 )

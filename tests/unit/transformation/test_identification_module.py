@@ -1,11 +1,6 @@
 from include.etl.transformation.core_transformation.modules.identification import (
     transform_identification_module,
 )
-from tests.unit.transformation.fixtures import (
-    study_key,
-    empty_study_data,
-    full_study_data,
-)
 
 
 def test_empty_data_returns_empty_lists(study_key, empty_study_data):

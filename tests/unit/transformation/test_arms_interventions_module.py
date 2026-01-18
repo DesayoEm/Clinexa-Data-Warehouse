@@ -4,12 +4,6 @@ from include.etl.transformation.core_transformation.modules.arms_intervention im
     standardize_intervention_name,
     ARMS_SOURCE,
 )
-from tests.unit.transformation.fixtures import (
-    study_key,
-    full_study_data,
-    empty_study_data,
-)
-from include.etl.transformation.utils import generate_key
 
 
 def test_empty_data_returns_empty_tuples(study_key, empty_study_data):

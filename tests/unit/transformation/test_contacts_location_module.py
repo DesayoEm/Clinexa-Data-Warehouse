@@ -2,11 +2,6 @@ import pandas as pd
 from include.etl.transformation.core_transformation.modules.contacts_location import (
     transform_contacts_location_module,
 )
-from tests.unit.transformation.fixtures import (
-    study_key,
-    full_study_data,
-    empty_study_data,
-)
 
 
 def test_empty_data_returns_empty_lists(study_key, empty_study_data):
