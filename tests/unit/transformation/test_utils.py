@@ -3,7 +3,7 @@ from include.etl.transformation.utils import generate_key
 
 def test_generate_key_single_arg():
     """Test single arg produces consistent hash."""
-    
+
     key1 = generate_key("test")
     key2 = generate_key("test")
     assert key1 == key2
@@ -30,7 +30,7 @@ def test_generate_key_case_insensitive():
 
 def test_generate_key_none_values_ignored():
     """Test none values are excluded from hash calculation."""
-    
+
     key1 = generate_key("test", None, "value")
     key2 = generate_key("test", "value")
     assert key1 == key2

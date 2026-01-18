@@ -1,5 +1,5 @@
 from include.etl.extraction.extraction import Extractor
-from include.tests.failure_generators import FailureGenerator
+from tests.airflow_tests.failure_generators import FailureGenerator
 
 
 class ExtractorWithFailureInjection(Extractor):
