@@ -67,10 +67,10 @@ def transform_contacts_location_module(study_key: str, study_data: pd.Series) ->
             central_contacts.append(
                 {
                     "contact_key": central_contact_key,
-                    "contact_name": name,
-                    "contact_role": role,
-                    "contact_phone": phone,
-                    "contact_email": email,
+                    "name": name,
+                    "role": role,
+                    "phone": phone,
+                    "email": email,
                 }
             )
 

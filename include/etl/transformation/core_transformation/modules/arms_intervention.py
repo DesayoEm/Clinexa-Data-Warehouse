@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import Tuple
 import logging
 import pandas as pd
 import numpy as np
@@ -6,6 +6,50 @@ from include.etl.transformation.config import NON_SCALAR_FIELDS
 from include.etl.transformation.utils import generate_key
 
 log = logging.getLogger("airflow.task")
+
+
+ALIASES = {
+    "sham": "Placebo",
+    "5-fu": "Fluorouracil",
+    "5-fluorouracil": "Fluorouracil",
+    "trastuzumab emtansine": "Trastuzumab",
+    "t-dm1": "Trastuzumab",
+}
+
+
+ARMS_SOURCE = "ARM"
+
+
+def standardize_intervention_name(
+    intervention_name: str, source: str | None = None
+) -> str | None:
+    # Manual cleaning is not enough to handle randomness and unpredictability of the intervention names
+    # as they're entered manually without validation on the API therefore:
+    # MeSH terms are more reliable for queries but intervention names takes precedence over mesh during
+    # API search as they're more specific and layman friendly
+
+    if not intervention_name:
+        return None
+
+    if source == ARMS_SOURCE:
+        # armGroups[].interventionNames uses format "Type: Name" (e.g., "Drug: Cisplatin")
+        # interventions[].name uses just "Name" (e.g., "Cisplatin")
+        # Stripping prefix is necessary to enable joining arm_interventions -> interventions
+
+        parts = intervention_name.split(": ", 1)
+        intervention_name = parts[1] if len(parts) > 1 else intervention_name
+
+    cleaned = intervention_name.lower().strip()
+    if cleaned in ALIASES:
+        return ALIASES[cleaned]
+
+    if cleaned.startswith("placebo"):
+        # extensive descriptions of placebo arms e.g 'Placebo matched to M2951'
+        # should only be in the description field in arms_intervention list
+        return "Placebo"
+
+    words = intervention_name.strip().split()
+    return " ".join([w if w.isupper() else w.capitalize() for w in words])
 
 
 def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -> Tuple:
@@ -33,10 +77,10 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
         Six-element tuple containing:
             - arm_groups: Arm group dimension records
             - arm_interventions: Bridge table linking arms to intervention names
-            - intervention_names: Primary intervention dimension records
-            - study_intervention_names: Bridge table for primary interventions
-            - other_interventions_names: Alternate name intervention records
-            - study_other_interventions_names: Bridge table for alternate names
+            - interventions: Primary intervention dimension records
+            - study_interventions: Bridge table for primary interventions
+            - other_intervention_names: Alternate name intervention records
+            - study_intervention_aliases: Bridge table for alternate names
 
 
         All lists return empty if no arms/interventions exist for the study.
@@ -45,10 +89,10 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
     arm_groups = []
     arm_interventions = []
 
-    intervention_names = []
-    study_intervention_names = []
-    other_interventions_names = []
-    study_other_interventions_names = []
+    interventions = []
+    study_interventions = []
+    other_intervention_names = []
+    study_intervention_aliases = []
 
     arms_interventions_index = NON_SCALAR_FIELDS["arms_interventions"]["index_field"]
     arm_groups_list = study_data.get(f"{arms_interventions_index}.armGroups")
@@ -80,11 +124,17 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
             ):
 
                 for arm_intervention in arm_interventions_list:
+                    arm_intervention_name = standardize_intervention_name(
+                        arm_intervention, ARMS_SOURCE
+                    )
+                    arm_intervention_key = generate_key(arm_intervention_name)
+
                     arm_interventions.append(
                         {
                             "study_key": study_key,
                             "arm_group_key": arm_group_key,
-                            "arm_intervention_name": arm_intervention,
+                            "arm_intervention_key": arm_intervention_key,
+                            "arm_intervention_name": arm_intervention_name,
                         }
                     )
 
@@ -94,24 +144,26 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
         and len(interventions_list) > 0
     ):
         for intervention in interventions_list:
-            main_name = intervention.get("name")
+            main_name = standardize_intervention_name(intervention.get("name"))
             intervention_type = intervention.get("type")
-            description = intervention.get("description")
 
-            intervention_key = generate_key(main_name, intervention_type)
-            intervention_names.append(
+            intervention_key = generate_key(
+                main_name
+            )  # Only name is used to enable matching on both arms and interventions
+
+            interventions.append(
                 {
                     "intervention_key": intervention_key,
                     "intervention_name": main_name,
                     "intervention_type": intervention_type,
-                    "description": description,
                 }
             )
 
-            study_intervention_names.append(
+            study_interventions.append(
                 {
                     "study_key": study_key,
                     "intervention_key": intervention_key,
+                    "description": intervention.get("description"),
                     "is_primary_name": True,
                 }
             )
@@ -120,33 +172,37 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
 
             if isinstance(other_names, (list, np.ndarray)) and len(other_names) > 0:
                 for other_name in other_names:
+                    other_name = standardize_intervention_name(other_name)
                     if other_name == main_name:
                         continue  # some studies put the main name in the list of other names
 
-                    intervention_key = generate_key(other_name, intervention_type)
-                    other_interventions_names.append(
+                    other_intervention_key = generate_key(other_name)
+                    other_intervention_names.append(
                         {
-                            "intervention_key": intervention_key,
+                            "intervention_key": other_intervention_key,
+                            # has its own key as other here could be main and vice versa in other studies.
+                            # and it remains independent in the warehouse
                             "intervention_name": other_name,
                             "intervention_type": intervention_type,  # inherit from parent
-                            "description": description,  # inherit from parent
                         }
                     )
 
-                    study_other_interventions_names.append(
+                    study_intervention_aliases.append(
                         {
                             "study_key": study_key,
-                            "intervention_key": intervention_key,
+                            "intervention_key": other_intervention_key,
+                            "description": intervention.get("description"),
                             "is_primary_name": False,
                         }
                     )
-            # armGroupLabels is excluded. check docs/excluded_fields.md for reasons
+            # armGroupLabels is excluded to avoid bi-directional inconsistencies due to human errors from source.
+            # check documentation/excluded_fields.md for details
 
     return (
         arm_groups,
         arm_interventions,
-        intervention_names,
-        study_intervention_names,
-        other_interventions_names,
-        study_other_interventions_names,
+        interventions,
+        study_interventions,
+        other_intervention_names,
+        study_intervention_aliases,
     )

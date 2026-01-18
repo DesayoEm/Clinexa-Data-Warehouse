@@ -3,7 +3,7 @@ import logging
 import pandas as pd
 import numpy as np
 from include.etl.transformation.config import NON_SCALAR_FIELDS
-
+from include.etl.transformation.utils import generate_key
 
 log = logging.getLogger("airflow.task")
 
@@ -42,13 +42,21 @@ def transform_outcomes_module(study_key: str, study_data: pd.Series) -> Tuple:
         and len(primary_outcomes_list) > 0
     ):
         for primary_outcome in primary_outcomes_list:
+            outcome_measure = primary_outcome.get("measure")
+            outcome_description = primary_outcome.get("description")
+            outcome_timeframe = primary_outcome.get("timeFrame")
+
+            outcome_key = generate_key(
+                study_key, outcome_measure, outcome_description, outcome_timeframe
+            )
 
             primary_outcomes.append(
                 {
                     "study_key": study_key,
-                    "measure": primary_outcome.get("measure"),
-                    "description": primary_outcome.get("description"),
-                    "time_frame": primary_outcome.get("timeFrame"),
+                    "outcome_key": outcome_key,
+                    "measure": outcome_measure,
+                    "description": outcome_description,
+                    "time_frame": outcome_timeframe,
                 }
             )
 
@@ -60,12 +68,21 @@ def transform_outcomes_module(study_key: str, study_data: pd.Series) -> Tuple:
         and len(secondary_outcomes_list) > 0
     ):
         for secondary_outcome in secondary_outcomes_list:
+            outcome_measure = secondary_outcome.get("measure")
+            outcome_description = secondary_outcome.get("description")
+            outcome_timeframe = secondary_outcome.get("timeFrame")
+
+            outcome_key = generate_key(
+                study_key, outcome_measure, outcome_description, outcome_timeframe
+            )
+
             secondary_outcomes.append(
                 {
                     "study_key": study_key,
-                    "measure": secondary_outcome.get("measure"),
-                    "description": secondary_outcome.get("description"),
-                    "time_frame": secondary_outcome.get("timeFrame"),
+                    "outcome_key": outcome_key,
+                    "measure": outcome_measure,
+                    "description": outcome_description,
+                    "time_frame": outcome_timeframe,
                 }
             )
 
@@ -75,12 +92,21 @@ def transform_outcomes_module(study_key: str, study_data: pd.Series) -> Tuple:
         and len(other_outcomes_list) > 0
     ):
         for other_outcome in other_outcomes_list:
+            outcome_measure = other_outcome.get("measure")
+            outcome_description = other_outcome.get("description")
+            outcome_timeframe = other_outcome.get("timeFrame")
+
+            outcome_key = generate_key(
+                study_key, outcome_measure, outcome_description, outcome_timeframe
+            )
+
             other_outcomes.append(
                 {
                     "study_key": study_key,
-                    "measure": other_outcome.get("measure"),
-                    "description": other_outcome.get("description"),
-                    "time_frame": other_outcome.get("timeFrame"),
+                    "outcome_key": outcome_key,
+                    "measure": outcome_measure,
+                    "description": outcome_description,
+                    "time_frame": outcome_timeframe,
                 }
             )
 

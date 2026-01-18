@@ -25,10 +25,10 @@ class StudyResult:
     study_keywords: List
     arm_groups: List
     arm_interventions: List
-    intervention_names: List
-    study_intervention_names: List
-    other_interventions_names: List
-    study_other_interventions_names: List
+    interventions: List
+    study_interventions: List
+    other_intervention_names: List
+    study_intervention_aliases: List
     primary_outcomes: List
     secondary_outcomes: List
     other_outcomes: List
@@ -39,11 +39,12 @@ class StudyResult:
     references: List
     link_references: List
     ipd_references: List
+
     outcome_measures: List
     outcome_measure_groups: List
     outcome_measure_denom_units: List
     outcome_measure_denom_counts: List
-    outcome_measure_measurements: List
+    outcome_measure_groups_result: List
     outcome_measure_analyses: List
     outcome_measure_comparison_groups: List
     flow_groups: List
@@ -52,6 +53,7 @@ class StudyResult:
     flow_period_milestone_achievements: List
     df_flow_period_withdrawals: List
     flow_period_withdrawal_reasons: List
+
     adverse_events: List
     event_groups: List
     serious_events: List

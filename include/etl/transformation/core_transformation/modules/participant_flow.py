@@ -113,12 +113,15 @@ def transform_participant_flow_module(study_key: str, study_data: pd.Series) -> 
                         and len(milestone_achievements) > 0
                     ):
                         for achievement in milestone_achievements:
+                            group_id = achievement.get("groupId")
+                            group_key = generate_key(study_key, group_id)
                             flow_period_milestone_achievements.append(
                                 {
                                     "study_key": study_key,
                                     "period_key": period_key,
                                     "milestone_key": milestone_key,
-                                    "group_id": achievement.get("groupId"),
+                                    "group_key": group_key,
+                                    "group_id": group_id,
                                     "comment": achievement.get("comment"),
                                     "num_subjects": achievement.get("numSubjects"),
                                     "num_units": achievement.get("numUnits"),
@@ -166,6 +169,9 @@ def transform_participant_flow_module(study_key: str, study_data: pd.Series) -> 
                                 reason_group_id,
                                 reason_comment,
                             )
+
+                            group_key = generate_key(study_key, reason_group_id)
+
                             flow_period_withdrawal_reasons.append(
                                 {
                                     "study_key": study_key,
@@ -173,6 +179,7 @@ def transform_participant_flow_module(study_key: str, study_data: pd.Series) -> 
                                     "withdrawal_key": withdrawal_key,
                                     "reason_key": reason_key,
                                     "group_id": reason_group_id,
+                                    "group_key": group_key,
                                     "reason": reason_comment,
                                     "num_subjects": reason.get("numSubjects"),
                                 }

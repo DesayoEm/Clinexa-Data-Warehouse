@@ -52,7 +52,7 @@ def transform_conditions_module(
             condition_key = generate_key(condition)
 
             conditions.append(
-                {"condition_key": condition_key, "condition_name": condition}
+                {"condition_key": condition_key, "condition_name": condition.lower()}
             )
 
             study_conditions.append(
@@ -69,7 +69,9 @@ def transform_conditions_module(
         for keyword in keywords_list:
             keyword_key = generate_key(keyword)
 
-            keywords.append({"keyword_key": keyword_key, "keyword_name": keyword})
+            keywords.append(
+                {"keyword_key": keyword_key, "keyword_name": keyword.lower()}
+            )
 
             study_keywords.append(
                 {

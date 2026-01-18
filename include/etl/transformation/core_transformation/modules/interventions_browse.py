@@ -62,20 +62,18 @@ def transform_interventions_browse_module(
     meshes = study_data.get(f"{interventions_browse_index}.meshes")
     if isinstance(meshes, (list, np.ndarray)) and len(meshes) > 0:
         for mesh in meshes:
-            mesh_id = mesh.get("id")
             mesh_terms = mesh.get("term")
 
             if isinstance(mesh_terms, str) and mesh_terms:
                 terms = mesh_terms.split(",")
                 for term in terms:
                     term = term.strip()
-                    mesh_key = generate_key(study_key, mesh_id, term)
+                    mesh_key = generate_key(term)
                     interventions_mesh.append(
                         {
                             "mesh_key": mesh_key,
-                            "study_key": study_key,
-                            "mesh_id": mesh_id,
-                            "mesh_term": term,
+                            "mesh_id": mesh.get("id"),
+                            "mesh_term": term.lower(),
                         }
                     )
 
@@ -83,32 +81,28 @@ def transform_interventions_browse_module(
                         {"mesh_key": mesh_key, "study_key": study_key}
                     )
 
-    mesh_ancestors_list = study_data.get(f"{interventions_browse_index}.ancestors")
-    if (
-        isinstance(mesh_ancestors_list, (list, np.ndarray))
-        and len(mesh_ancestors_list) > 0
-    ):
+    ancestors_list = study_data.get(f"{interventions_browse_index}.ancestors")
+    if isinstance(ancestors_list, (list, np.ndarray)) and len(ancestors_list) > 0:
 
-        for mesh_ancestor in mesh_ancestors_list:
-            ancestor_id = mesh_ancestor.get("id")
-            ancestor_terms = mesh_ancestor.get("term")
+        for ancestor in ancestors_list:
+            ancestor_terms = ancestor.get("term")
 
             if isinstance(ancestor_terms, str) and ancestor_terms:
                 terms = ancestor_terms.split(",")
                 for term in terms:
                     term = term.strip()
-                    ancestor_key = generate_key(study_key, ancestor_id, term)
+                    ancestor_key = generate_key(term)
                     interventions_mesh_ancestors.append(
                         {
-                            "mesh_ancestor_key": ancestor_key,
+                            "ancestor_key": ancestor_key,
                             "study_key": study_key,
-                            "mesh_ancestor_id": ancestor_id,
-                            "mesh_ancestor_term": term,
+                            "ancestor_id": ancestor.get("id"),
+                            "ancestor_term": term.lower(),
                         }
                     )
 
                     study_interventions_mesh_ancestors.append(
-                        {"mesh_ancestor_key": ancestor_key, "study_key": study_key}
+                        {"ancestor_key": ancestor_key, "study_key": study_key}
                     )
 
     mesh_browse_leaves = study_data.get(f"{interventions_browse_index}.browseLeaves")
@@ -118,20 +112,19 @@ def transform_interventions_browse_module(
     ):
         for browse_leaf in mesh_browse_leaves:
             leaf_id = browse_leaf.get("id")
-            leaf_key = generate_key(study_key, leaf_id)
+            leaf_key = generate_key(leaf_id)
 
             interventions_browse_leaves.append(
                 {
                     "leaf_key": leaf_key,
-                    "study_key": study_key,
-                    "name": browse_leaf.get("name"),
+                    "name": browse_leaf.get("name").lower(),
                     "as_found": browse_leaf.get("asFound"),
                     "relevance": browse_leaf.get("relevance"),
                 }
             )
 
             study_interventions_browse_leaves.append(
-                {"mesh_browse_leaf_key": leaf_key, "study_key": study_key}
+                {"leaf_key": leaf_key, "study_key": study_key}
             )
 
     mesh_browse_branches = study_data.get(
@@ -143,20 +136,19 @@ def transform_interventions_browse_module(
     ):
         for browse_branch in mesh_browse_branches:
             branch_id = browse_branch.get("id")
-            branch_key = generate_key(study_key, branch_id)
+            branch_key = generate_key(branch_id)
 
             interventions_browse_branches.append(
                 {
                     "branch_key": branch_key,
-                    "study_key": study_key,
-                    "name": browse_branch.get("name"),
+                    "name": browse_branch.get("name").lower(),
                     "as_found": browse_branch.get("asFound"),
                     "relevance": browse_branch.get("relevance"),
                 }
             )
 
             study_interventions_browse_branches.append(
-                {"mesh_browse_branch_key": branch_key, "study_key": study_key}
+                {"branch_key": branch_key, "study_key": study_key}
             )
 
     # else:
