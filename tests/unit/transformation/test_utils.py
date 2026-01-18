@@ -1,7 +1,3 @@
-import pytest
-import pandas as pd
-import numpy as np
-from unittest.mock import patch
 from include.etl.transformation.utils import generate_key
 
 
@@ -44,8 +40,7 @@ def test_generate_key_numeric_args():
     """Numeric arguments are converted to strings."""
 
     key1 = generate_key("study", 123, 456.78)
-    key2 = generate_key("study|123|456.78"
-)
+    key2 = generate_key("study|123|456.78")
     assert key1 == key2
     assert len(key1) == 16
     assert len(key2) == 16
