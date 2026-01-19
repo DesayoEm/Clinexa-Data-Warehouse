@@ -139,7 +139,7 @@ def _default_conn_name_from(mod_path, hook_name):
 
         DEFAULT_REMOTE_CONN_ID = getattr(hook, "default_conn_name")
     except Exception:
-        # Lets error in tests though!
+        # Lets error in airflow_tests though!
         if "PYTEST_CURRENT_TEST" in os.environ:
             raise
         return None

@@ -1,5 +1,5 @@
 from include.etl.extraction.extraction import Extractor
-from include.tests.failure_generators import FailureGenerator
+from tests.airflow_tests.failure_generators import FailureGenerator
 
 
 class ExtractorWithFailureInjection(Extractor):
@@ -12,13 +12,12 @@ class ExtractorWithFailureInjection(Extractor):
     def save_response(self, page_number, data):
         # NOTE:
         # Failure injection is intentionally placed at the save_response stage rather than
-        # during request execution. The goal of this test is not to simulate HTTP/network
-        # failures, but to validate the extractor’s ability to:
+        # during request execution. The goal of this test is to validate the extractor’s ability to:
         #   - persist state correctly,
         #   - checkpoint progress,
         #   - and recover safely from a mid-extraction failure.
         #
-        # save_response is a stable per-page boundary where page_number is known and
+        # save_response is a stable boundary where page_number is known and
         # extractor state is about to mutate, making it the most reliable point for
         # failure testing.
 
