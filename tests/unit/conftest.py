@@ -54,7 +54,6 @@ for module_name, mock_module in AIRFLOW_MODULES.items():
 sys.modules["airflow.models"].Variable = MagicMock()
 
 
-
 def pytest_configure(config):
     """Configure pytest markers."""
     config.addinivalue_line(
