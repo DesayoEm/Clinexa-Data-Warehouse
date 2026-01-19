@@ -16,5 +16,5 @@ def test_violations_extracted(study_key, results_study_data):
 
     assert len(violations) == 1
     assert violations[0]["violation_type"] == "LATE_RESULTS"
-    assert violations[0]["issued_date"] == "2024-01-15"
+    assert violations[0]["issued_date"] == "2026-01-15"
     assert violations[0]["study_key"] == study_key

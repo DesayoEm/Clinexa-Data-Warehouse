@@ -1,5 +1,3 @@
-import sys
-from pathlib import Path
 from tests.unit.transformation.fixtures import (
     study_key,
     full_study_data,
@@ -10,6 +8,3 @@ from tests.unit.transformation.fixtures import (
     empty_study_data,
     nct_id,
 )
-
-
-sys.path.insert(0, str(Path(__file__).parent))

@@ -183,7 +183,7 @@ def full_study_data():
             "protocolSection.statusModule.overallStatus": "RECRUITING",
             "protocolSection.statusModule.startDateStruct.date": "2023-01-01",
             "protocolSection.statusModule.startDateStruct.type": "ACTUAL",
-            "protocolSection.statusModule.completionDateStruct.date": "2024-12-31",
+            "protocolSection.statusModule.completionDateStruct.date": "2026-12-31",
             "protocolSection.statusModule.completionDateStruct.type": "ESTIMATED",
             # Design Module
             "protocolSection.designModule.studyType": "INTERVENTIONAL",
@@ -375,10 +375,10 @@ def results_study_data():
                 {
                     "type": "LATE_RESULTS",
                     "description": "Results submitted 30 days late",
-                    "issuedDate": "2024-01-15",
-                    "creationDate": "2024-01-10",
-                    "releaseDate": "2024-01-20",
-                    "postedDate": "2024-01-25",
+                    "issuedDate": "2026-01-15",
+                    "creationDate": "2026-01-10",
+                    "releaseDate": "2026-01-20",
+                    "postedDate": "2026-01-25",
                 },
             ],
         }

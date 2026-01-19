@@ -2,6 +2,7 @@
 /env
 /.idea
 .env
+clinexa.egg-info
 __pycache__/
 *.pyc
 /data
