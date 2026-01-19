@@ -86,7 +86,7 @@ def test_wait_if_needed_prunes_old_requests(
 
     extractor = Extractor(mock_context, mock_s3_hook)
 
-    # Add old timestamps (older than 60 seconds)
+    # old timestamps
     old_time = time.time() - 120
     extractor.requests = [old_time, old_time + 1, old_time + 2]
 
@@ -121,7 +121,7 @@ def test_save_response(mock_config, mock_state_handler, mock_context, mock_s3_ho
 
     extractor.save_response(1, data)
 
-    # S3 upload was called
+    # Ensure S3 upload was called
     mock_s3_hook.load_bytes.assert_called_once()
     call_kwargs = mock_s3_hook.load_bytes.call_args[1]
 
@@ -129,7 +129,7 @@ def test_save_response(mock_config, mock_state_handler, mock_context, mock_s3_ho
     assert call_kwargs["key"] == "2026-01-15/1.parquet"
     assert call_kwargs["replace"] is True
 
-    # Verify page counter incremented
+    # ensure page counter incremented
     assert extractor.last_saved_page == 1
 
 
@@ -231,7 +231,7 @@ def test_make_requests_exhaustion_error(
     with pytest.raises(RequestExhaustionError):
         extractor.make_requests()
 
-    # Verify checkpoint was saved before raising
+    # Check checkpoint was saved before raising
     mock_state_handler.return_value.save_checkpoint.assert_called()
 
 

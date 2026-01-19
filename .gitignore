@@ -21,3 +21,5 @@ terraform.rc
 .terraform.lock.hcl
 bkjt.py
 priv/
+.pytest_cache
+*.pytest_cache

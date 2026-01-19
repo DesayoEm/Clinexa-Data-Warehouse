@@ -293,7 +293,7 @@ class Extractor:
         """
         Convert API response to Parquet format and persist to S3.
 
-        This method handles the transformationr and storage of a single page of API data:
+        This method handles the processing and storage of a single page of API data:
         1. Converts JSON response dict to pandas DataFrame
         2. Transforms DataFrame to PyArrow Table for efficient Parquet encoding
         3. Writes Parquet data to in-memory buffer

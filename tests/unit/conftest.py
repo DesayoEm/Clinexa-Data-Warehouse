@@ -1,5 +1,19 @@
 import sys
+import pytest
 from unittest.mock import MagicMock
+
+from tests.unit.transformation.fixtures import (
+    study_key,
+    full_study_data,
+    minimal_study_data,
+    browse_study_data,
+    results_study_data,
+    results_study_data,
+    empty_study_data,
+    nct_id,
+)
+
+
 from tests.unit.extraction.fixtures import (
     mock_context,
     mock_context_retry,
@@ -37,11 +51,8 @@ AIRFLOW_MODULES = {
 for module_name, mock_module in AIRFLOW_MODULES.items():
     sys.modules[module_name] = mock_module
 
-# Make Variable accessible for patching in tests
 sys.modules["airflow.models"].Variable = MagicMock()
 
-
-import pytest
 
 
 def pytest_configure(config):
