@@ -22,6 +22,23 @@ from tests.unit.extraction.fixtures import (
     sample_api_response_last_page,
 )
 
+import sys
+from unittest.mock import MagicMock
+
+# mock config
+mock_config = MagicMock()
+mock_config.BASE_URL = "https://mock.url"
+mock_config.FIRST_PAGE_URL = "https://mock.url"
+mock_config.CTGOV_BUCKET = "CT-bucket"
+mock_config.AWS_ACCESS_KEY_ID = "XXXXXXXXXXXXX"
+mock_config.AWS_SECRET_ACCESS_KEY = "XXXXXXXXXXXX"
+mock_config.AWS_REGION = "mock-west-1"
+mock_config.DB_NAME = "mock-db-name"
+mock_config.DB_USER = "mock-user"
+mock_config.DB_PASSWORD = "pwd-pwd"
+mock_config.DB_CONN_STR = "mock-str"
+
+
 # mock modules for airflow components
 mock_airflow = MagicMock()
 mock_airflow.utils = MagicMock()
@@ -50,8 +67,11 @@ AIRFLOW_MODULES = {
 
 for module_name, mock_module in AIRFLOW_MODULES.items():
     sys.modules[module_name] = mock_module
-
 sys.modules["airflow.models"].Variable = MagicMock()
+
+
+sys.modules["config.env_config"] = MagicMock()
+sys.modules["config.env_config"].config = mock_config
 
 
 def pytest_configure(config):
