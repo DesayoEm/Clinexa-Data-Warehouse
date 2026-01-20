@@ -1,6 +1,6 @@
 resource "aws_s3_bucket" "clinexa-ctgov" {
-  bucket = "clinexa-ct"
-  force_destroy = true #disabled in prod
+  bucket = var.clinexa-bucket
+  force_destroy = true # to be disabled
 
   tags = {
     Name        = "CT gov bucket"
@@ -38,7 +38,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "ct_gov_archive_lifecycle" {
 #LOGS BUCKET
 
 resource "aws_s3_bucket" "airflow-logs" {
-  bucket = "clinexa-airflow-logs"
+  bucket = var.log-bucket
   force_destroy = true
 
   tags = {
@@ -58,12 +58,12 @@ resource "aws_s3_bucket_lifecycle_configuration" "logs_lifecycle" {
   bucket = aws_s3_bucket.airflow-logs.id
 
   rule {
-    id     = "TransitionToDeepArchive"
+    id     = "TransitionToStandardIA"
     status = "Enabled"
 
     transition {
-      days          = 7
-      storage_class = "DEEP_ARCHIVE"
+      days          = 30
+      storage_class = "STANDARD_IA"
     }
   }
 
