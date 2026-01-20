@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "clinexa-ctgov" {
-  bucket = var.clinexa-bucket
+  bucket        = var.clinexa-bucket
   force_destroy = true # to be disabled
 
   tags = {
@@ -7,6 +7,8 @@ resource "aws_s3_bucket" "clinexa-ctgov" {
     Environment = "Test"
   }
 }
+
+
 
 resource "aws_s3_bucket_versioning" "ctgov_versioning" {
   bucket = aws_s3_bucket.clinexa-ctgov.id
@@ -20,53 +22,55 @@ resource "aws_s3_bucket_versioning" "ctgov_versioning" {
 }
 
 
-resource "aws_s3_bucket_lifecycle_configuration" "ct_gov_archive_lifecycle" {
+#LIFECYCLE POLICIES
+resource "aws_s3_bucket_lifecycle_configuration" "clinexa_lifecycle" {
   bucket = aws_s3_bucket.clinexa-ctgov.id
 
   rule {
-    id     = "TransitionToDeepArchive"
-    status = "Enabled"
+    id = "ctgov-raw-transition"
 
-    transition {
-      days          = 7
-      storage_class = "DEEP_ARCHIVE"
+    filter {
+      prefix = "CTGOV/raw/"
     }
-  }
-
-  }
-
-#LOGS BUCKET
-
-resource "aws_s3_bucket" "airflow-logs" {
-  bucket = var.log-bucket
-  force_destroy = true
-
-  tags = {
-    Name        = "logs"
-  }
-}
-
-resource "aws_s3_bucket_versioning" "logs_versioning" {
-  bucket = aws_s3_bucket.airflow-logs.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-
-resource "aws_s3_bucket_lifecycle_configuration" "logs_lifecycle" {
-  bucket = aws_s3_bucket.airflow-logs.id
-
-  rule {
-    id     = "TransitionToStandardIA"
-    status = "Enabled"
 
     transition {
       days          = 30
       storage_class = "STANDARD_IA"
     }
+
+    status = "Enabled"
   }
 
+
+  rule {
+    id = "ctgov-staging-expiration"
+
+    filter {
+      prefix = "CTGOV/staging/"
+    }
+
+    expiration {
+      days = 7
+    }
+
+    status = "Enabled"
   }
+
+  rule {
+    id = "airflow-logs-transition"
+
+    filter {
+      prefix = "airflow-logs/"
+    }
+
+    transition {
+      days          = 30
+      storage_class = "STANDARD_IA"
+    }
+    status = "Enabled"
+  }
+
+}
+
 
 

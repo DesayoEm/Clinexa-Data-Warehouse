@@ -41,9 +41,7 @@ resource "aws_iam_policy" "s3_access" {
         ]
         Resource = [
           aws_s3_bucket.clinexa-ctgov.arn,
-          "${aws_s3_bucket.clinexa-ctgov.arn}/*",
-          aws_s3_bucket.airflow-logs.arn,
-          "${aws_s3_bucket.airflow-logs.arn}/*"
+          "${aws_s3_bucket.clinexa-ctgov.arn}/*"
         ]
       }
     ]

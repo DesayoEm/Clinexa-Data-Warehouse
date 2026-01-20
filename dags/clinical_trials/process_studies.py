@@ -7,7 +7,7 @@ from include.etl.extraction.extraction import Extractor
 
 @dag(
     dag_id="process_studies",
-    start_date=datetime(2025, 10, 27),
+    start_date=datetime(2026, 1, 19),
     catchup=False,
     schedule=None,
     tags=["ctgov"],
