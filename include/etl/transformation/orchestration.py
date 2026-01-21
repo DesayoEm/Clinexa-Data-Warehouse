@@ -1,12 +1,18 @@
 import logging
+import json
+import io
 from typing import List, Dict
 from collections import defaultdict
+import pandas as pd
+
 from airflow.utils.context import Context
+from airflow.models import Variable
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from include.etl.transformation.core_transformation.study_transformation import (
     process_study_file,
     post_process_tables,
 )
+from config.env_config import config
 from include.etl.transformation.models import StudyResult
 
 EXPECTED_TABLES = StudyResult.expected_tables()
@@ -28,11 +34,11 @@ class Transformer:
         s3: S3Hook instance for reading source files and writing checkpoints.
     """
 
-    def __init__(self, context: Context, s3_dest_hook: S3Hook = None):
+    def __init__(self, context: Context, s3_hook: S3Hook = None):
         self.context = context
         self.execution_date = context.get("ds")
         self.log = logging.getLogger("airflow.task")
-        self.s3 = s3_dest_hook or S3Hook(aws_conn_id="aws_airflow")
+        self.s3 = s3_hook or S3Hook(aws_conn_id="aws_airflow")
 
     def mark_checkpoint(self, index, file):
         """
@@ -45,6 +51,18 @@ class Transformer:
             index: Position in the file list where processing failed.
             file: S3 path of the file that failed.
         """
+        ti = self.context.get("task_instance")
+        checkpoint_key = f"{ti.task_id}_{self.execution_date}"
+
+        checkpoint_value = {
+            "last_processed_index": index,
+            "last_processed_key": file,
+        }
+
+        Variable.set(checkpoint_key, json.dumps(checkpoint_value))
+        self.log.info(
+            f"Checkpoint saved - Key: {checkpoint_key}, Index: {index}, Last processed key: {file}"
+        )
 
     def load_checkpoint(self):
         """
@@ -54,6 +72,58 @@ class Transformer:
         to skip already-processed files. Returns None or starting index if
         no checkpoint exists.
         """
+        self.log.info("Determining starting point for transformer...")
+        default_state = {"last_processed_index": 0, "last_processed_key": None}
+
+        ti = self.context.get("task_instance")
+        if not ti:
+            self.log.warning("No task instance found in context, starting fresh")
+            return default_state
+
+        self.log.info(f"Current try_number: {ti.try_number}")
+        if ti.try_number == 1:
+            self.log.info("First run. Starting fresh transformation")
+            return default_state
+
+        checkpoint_key = f"{ti.task_id}_{self.execution_date}"
+
+        try:
+            checkpoint_json = Variable.get(checkpoint_key)
+            checkpoint = json.loads(checkpoint_json)
+            last_processed_key = checkpoint.get("last_processed_key")
+            last_processed_index = checkpoint.get("last_processed_index")
+
+            self.log.info(
+                f"Checkpoint loaded - Key: {checkpoint_key}, INDEX: {last_processed_index}, LAST PROCESSED: {last_processed_key}"
+            )
+            self.log.info(f"Resuming from page {last_processed_index + 1}")
+
+            return {
+                "last_processed_index": last_processed_index,
+                "last_processed_key": last_processed_key,
+            }
+
+        except KeyError:
+            self.log.info(f"No checkpoint found for key: {checkpoint_key}")
+            self.log.info(f"  Starting fresh from beginning")
+            return default_state
+
+        except json.JSONDecodeError as e:
+            self.log.error(
+                f"Failed to parse checkpoint JSON: {e}\n"
+                f"JSON DATA\n\n"
+                f"{checkpoint_json}"
+            )
+
+            self.log.info(f"Starting fresh from beginning")
+            return default_state
+
+        except Exception as e:
+            self.log.info(
+                f"ERROR finding checkpoint for key: {checkpoint_key} \n Error: {e}"
+            )
+            self.log.info(f"Defaulting to beginning")
+            return default_state
 
     @staticmethod
     def merge_batch_results(batch_results: List[StudyResult]) -> Dict[str, List[Dict]]:
@@ -83,7 +153,7 @@ class Transformer:
 
         return merged
 
-    def transform_studies_batch(self, loc: str):
+    def transform_studies_batch(self):
         """
         Process all raw study files for the current execution date.
 
@@ -91,27 +161,50 @@ class Transformer:
         each file's studies
         On failure, marks a checkpoint and re-raises to trigger Airflow retry with resumption.
 
-        Args:
-            loc: S3 prefix/location containing raw parquet files to process.
-
         Raises:
             Exception: Re-raises any processing error after checkpointing,
                 preserving the original exception for Airflow visibility.
         """
-        files = ""  # s3 loc
-        self.load_checkpoint()
-        for index, file_path in enumerate(files):
+        bucket_name = config.CLINEXA_BUCKET
+        prefix = f"{config.CTGOV_DEST}/{config.RAW_DEST}/{self.execution_date}/"
+
+        keys = self.s3.list_keys(bucket_name=bucket_name, prefix=prefix)
+
+        files = set(keys) if keys else set()  # i not manifest
+        last_processed_index = self.load_checkpoint()["last_processed_index"]
+
+        start_index = last_processed_index + 1 if last_processed_index else 0
+        for index, s3_key in enumerate(files, start=start_index):
 
             try:
-                batch_result = process_study_file(file_path)
+                batch_result = process_study_file(s3_key)
                 merged_batch_results = self.merge_batch_results(batch_result)
                 dfs = post_process_tables(merged_batch_results)
 
-                return dfs
+                self.write_to_datalake(index, dfs)
 
-                # load
+                self.mark_checkpoint(index, s3_key)
 
             except Exception as e:
-                self.mark_checkpoint(index, file_path)
                 self.log.exception(f"File failed: Exception: {str(e)}")
                 raise
+
+    def write_to_datalake(self, index: int, dfs: Dict[str, pd.DataFrame]) -> None:
+        bucket = config.CLINEXA_BUCKET
+
+        for table_name, df in dfs.items():
+            key = (
+                f"{config.CTGOV_DEST}/"
+                f"{config.STAGING_DEST}/"
+                f"{self.execution_date}/"
+                f"{table_name}/"
+                f"part-{index:05d}.parquet"
+            )
+
+            buffer = io.BytesIO()
+            df.to_parquet(buffer, index=False)
+            buffer.seek(0)
+
+            self.s3.load_bytes(
+                bytes_data=buffer.getvalue(), key=key, bucket_name=bucket, replace=True
+            )

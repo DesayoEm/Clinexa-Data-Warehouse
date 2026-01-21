@@ -1,4 +1,4 @@
-resource "aws_s3_bucket" "clinexa-ctgov" {
+resource "aws_s3_bucket" "clinexa-ct" {
   bucket        = var.clinexa-bucket
   force_destroy = true # to be disabled
 
@@ -11,7 +11,7 @@ resource "aws_s3_bucket" "clinexa-ctgov" {
 
 
 resource "aws_s3_bucket_versioning" "ctgov_versioning" {
-  bucket = aws_s3_bucket.clinexa-ctgov.id
+  bucket = aws_s3_bucket.clinexa-ct.id
   versioning_configuration {
     status = "Enabled"
   }
@@ -22,9 +22,10 @@ resource "aws_s3_bucket_versioning" "ctgov_versioning" {
 }
 
 
+
 #LIFECYCLE POLICIES
 resource "aws_s3_bucket_lifecycle_configuration" "clinexa_lifecycle" {
-  bucket = aws_s3_bucket.clinexa-ctgov.id
+  bucket = aws_s3_bucket.clinexa-ct.id
 
   rule {
     id = "ctgov-raw-transition"

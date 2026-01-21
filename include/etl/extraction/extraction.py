@@ -85,7 +85,9 @@ class Extractor:
         initial_state = self.state.determine_state()
         self.last_saved_page = initial_state.get("last_saved_page")
         self.next_page_url = initial_state.get("next_page_url")
-        self.destination_key = f"{config.CTGOV_DEST}/{config.RAW_DEST}/{self.execution_date}"
+        self.destination_key = (
+            f"{config.CTGOV_DEST}/{config.RAW_DEST}/{self.execution_date}"
+        )
 
         self.s3_hook = s3_hook
 
@@ -193,7 +195,7 @@ class Extractor:
 
                     elif attempt >= self.max_retries and response.status_code != 200:
 
-                        self.state.save_checkpoint(
+                        self.state.mark_checkpoint(
                             self.previous_token,
                             self.last_saved_page,
                             self.last_saved_token,
@@ -226,7 +228,7 @@ class Extractor:
 
                     self.log.info(f"Next page not found on page {current_page}")
 
-                    self.state.save_checkpoint(
+                    self.state.mark_checkpoint(
                         self.previous_token, self.last_saved_page, self.last_saved_token
                     )
 
@@ -267,7 +269,7 @@ class Extractor:
             except Exception as e:
                 self.log.info(f"{str(e)}")
 
-                self.state.save_checkpoint(
+                self.state.mark_checkpoint(
                     self.previous_token, self.last_saved_page, self.last_saved_token
                 )
 

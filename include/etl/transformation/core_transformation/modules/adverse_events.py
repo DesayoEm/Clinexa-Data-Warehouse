@@ -86,7 +86,8 @@ def transform_adverse_events_module(study_key: str, study_data: pd.Series) -> Tu
         and len(serious_events_list) > 0
     ):
         for serious_event in serious_events_list:
-            term = serious_event.get("term").lower()
+            term = serious_event.get("term")
+            term = term.lower() if isinstance(term, str) else term
             serious_event_key = generate_key(study_key, adverse_event_key, term)
 
             organ_system = serious_event.get("organSystem")
@@ -141,6 +142,7 @@ def transform_adverse_events_module(study_key: str, study_data: pd.Series) -> Tu
         for other_event in other_events_list:
 
             term = other_event.get("term")
+            term = term.lower() if isinstance(term, str) else term
             other_event_key = generate_key(study_key, adverse_event_key, term)
 
             organ_system = other_event.get("organSystem")

@@ -232,7 +232,7 @@ def test_make_requests_exhaustion_error(
         extractor.make_requests()
 
     # Check checkpoint was saved before raising
-    mock_state_handler.return_value.save_checkpoint.assert_called()
+    mock_state_handler.return_value.mark_checkpoint.assert_called()
 
 
 @patch("include.etl.extraction.extraction.requests")

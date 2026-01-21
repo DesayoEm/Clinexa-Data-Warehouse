@@ -4,10 +4,6 @@ variable "clinexa-bucket" {
 }
 
 
-variable "log-bucket" {
-  type    = string
-  default = "clinexa-airflow-logs"
-}
 
 variable "region" {
   type        = string

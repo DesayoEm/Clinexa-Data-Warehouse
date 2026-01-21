@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
-    bucket = "clinexa-ct"
-    key    = "terraform/terraform.tfstate"
+    bucket = "terraform-mpb"
+    key    = "clinexa.tfstate"
     region = "eu-west-2"
   }
 }
