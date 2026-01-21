@@ -168,9 +168,11 @@ class Transformer:
         bucket_name = config.CLINEXA_BUCKET
         prefix = f"{config.CTGOV_DEST}/{config.RAW_DEST}/{self.execution_date}/"
 
-        keys = self.s3.list_keys(bucket_name=bucket_name, prefix=prefix)
+        keys = self.s3.list_keys(bucket_name=bucket_name, prefix=prefix) or []
 
-        files = set(keys) if keys else set()  # i not manifest
+        files = sorted(
+            key for key in keys if "manifest" not in key
+        )  # sorting here to enable reliable checkpointing
         last_processed_index = self.load_checkpoint()["last_processed_index"]
 
         start_index = last_processed_index + 1 if last_processed_index else 0
