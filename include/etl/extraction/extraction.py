@@ -85,6 +85,9 @@ class Extractor:
         initial_state = self.state.determine_state()
         self.last_saved_page = initial_state.get("last_saved_page")
         self.next_page_url = initial_state.get("next_page_url")
+        self.destination_key = (
+            f"{config.CTGOV_DEST}/{config.RAW_DEST}/{self.execution_date}"
+        )
 
         self.s3_hook = s3_hook
 
@@ -162,7 +165,8 @@ class Extractor:
              - Rate limit check is ran before each request to prevent API throttling
         """
 
-        while self.last_saved_page < 2:  # test volume
+        while True:
+            # while self.last_saved_page < 10:  # test volume
             current_page = self.last_saved_page + 1
             # current page is used for logging and error reporting within the namespace of this function, and
             # not for tracking progress. progress is tracked by self.last_saved_page
@@ -192,7 +196,7 @@ class Extractor:
 
                     elif attempt >= self.max_retries and response.status_code != 200:
 
-                        self.state.save_checkpoint(
+                        self.state.mark_checkpoint(
                             self.previous_token,
                             self.last_saved_page,
                             self.last_saved_token,
@@ -225,12 +229,12 @@ class Extractor:
 
                     self.log.info(f"Next page not found on page {current_page}")
 
-                    self.state.save_checkpoint(
+                    self.state.mark_checkpoint(
                         self.previous_token, self.last_saved_page, self.last_saved_token
                     )
 
                     manifest = {
-                        "location": f"s3://{config.CTGOV_BUCKET}/{self.execution_date}",
+                        "location": f"s3://{config.CLINEXA_BUCKET}/{self.destination_key}",
                         "created_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
                         "metrics": {
                             "page_count": self.last_saved_page,
@@ -242,31 +246,31 @@ class Extractor:
                         },
                     }
 
-                    manifest_key = f"{self.execution_date}_manifest.json"
+                    manifest_key = f"{self.destination_key}_manifest.json"
 
                     self.s3_hook.load_string(
                         string_data=json.dumps(manifest, indent=2),
                         key=manifest_key,
-                        bucket_name=config.CTGOV_BUCKET,
+                        bucket_name=config.CLINEXA_BUCKET,
                         replace=True,
                     )
 
                     self.log.info(
-                        f"Manifest saved to s3://{config.CTGOV_BUCKET}/{self.execution_date}/{manifest_key}"
+                        f"Manifest saved to s3://{config.CLINEXA_BUCKET}/{manifest_key}"
                     )
 
                     metadata = {
                         "pages_extracted": self.last_saved_page,
                         "last_valid_token": self.previous_token,
                         "final_token": self.last_saved_token,
-                        "data_location": f"s3://{config.CTGOV_BUCKET}/{self.execution_date}/",
+                        "data_location": f"s3://{config.CLINEXA_BUCKET}/{self.destination_key}/",
                     }
                     return metadata
 
             except Exception as e:
                 self.log.info(f"{str(e)}")
 
-                self.state.save_checkpoint(
+                self.state.mark_checkpoint(
                     self.previous_token, self.last_saved_page, self.last_saved_token
                 )
 
@@ -329,8 +333,8 @@ class Extractor:
         pq.write_table(table, buffer)
         buffer.seek(0)
 
-        bucket = config.CTGOV_BUCKET
-        key = f"{self.execution_date}/{page_number}.parquet"
+        bucket = config.CLINEXA_BUCKET
+        key = f"{self.destination_key}/{page_number}.parquet"
 
         self.s3_hook.load_bytes(
             bytes_data=buffer.getvalue(), key=key, bucket_name=bucket, replace=True

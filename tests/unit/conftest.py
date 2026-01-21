@@ -29,7 +29,9 @@ from unittest.mock import MagicMock
 mock_config = MagicMock()
 mock_config.BASE_URL = "https://mock.url"
 mock_config.FIRST_PAGE_URL = "https://mock.url"
-mock_config.CTGOV_BUCKET = "CT-bucket"
+mock_config.CLINEXA_BUCKET = "clinical-trials-bucket"
+mock_config.CTGOV_DEST = "CTGOV"
+mock_config.RAW_DEST = "raw"
 mock_config.AWS_ACCESS_KEY_ID = "XXXXXXXXXXXXX"
 mock_config.AWS_SECRET_ACCESS_KEY = "XXXXXXXXXXXX"
 mock_config.AWS_REGION = "mock-west-1"

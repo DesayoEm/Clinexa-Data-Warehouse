@@ -28,7 +28,7 @@ def test_checkpoint_saved_on_exception(
         extractor.make_requests()
 
     # Checkpoint should have been saved
-    mock_state_handler.return_value.save_checkpoint.assert_called()
+    mock_state_handler.return_value.mark_checkpoint.assert_called()
 
 
 # NOTE: This test currently fails because the Extractor class is heavily

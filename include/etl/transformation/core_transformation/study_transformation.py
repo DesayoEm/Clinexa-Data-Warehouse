@@ -1,11 +1,21 @@
 from typing import List, Dict
 from collections import defaultdict
 import logging
+import io
+import tempfile
+
 import pandas as pd
+from config.env_config import config
+
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+
+s3_hook = S3Hook(aws_conn_id="aws_airflow")
 
 from include.etl.transformation.config import SCALAR_FIELDS
 from include.etl.transformation.utils import generate_key
 from include.etl.transformation.models import StudyResult
+
+log = logging.getLogger("airflow.task")
 
 from include.etl.transformation.core_transformation.modules.study_main import (
     transform_scalar_fields,
@@ -62,7 +72,7 @@ from include.etl.transformation.core_transformation.modules.interventions_browse
 log = logging.getLogger("airflow.task")
 
 
-def process_study_file(file_loc: str) -> List[StudyResult]:
+def process_study_file(s3_key: str) -> List[StudyResult]:
     """
     Process a parquet file containing raw study data from ClinicalTrials.gov API.
 
@@ -71,7 +81,7 @@ def process_study_file(file_loc: str) -> List[StudyResult]:
     with a warning.
 
     Args:
-        file_loc: Path to parquet file containing raw API response data
+        s3_key: Path to parquet file containing raw API response data
                   with a 'studies' column of nested JSON.
 
     Returns:
@@ -82,7 +92,13 @@ def process_study_file(file_loc: str) -> List[StudyResult]:
     """
     batch_results: List[StudyResult] = []
 
-    df_studies = pd.read_parquet(file_loc)
+    s3_uri = f"s3://{config.CLINEXA_BUCKET}/{s3_key}"
+    log.info(f"READING {s3_uri}")
+
+    s3_obj = s3_hook.get_key(key=s3_key, bucket_name=config.CLINEXA_BUCKET)
+    file_content = s3_obj.get()["Body"].read()
+
+    df_studies = pd.read_parquet(io.BytesIO(file_content))
     df_studies = pd.json_normalize(df_studies["studies"])
 
     for idx, study in df_studies.iterrows():
@@ -364,7 +380,7 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
     )
 
 
-def post_process_tables(results: Dict[str, List[Dict]]) -> List[pd.DataFrame]:
+def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFrame]:
     """
     Convert raw transformation results into deduplicated DataFrames.
 
@@ -594,68 +610,68 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> List[pd.DataFrame]:
         )
     )
 
-    return [
-        df_studies,
-        df_secondary_ids,
-        df_nct_aliases,
-        df_sponsors,
-        df_study_sponsors,
-        df_collaborators,
-        df_study_collaborators,
-        df_conditions,
-        df_study_conditions,
-        df_keywords,
-        df_study_keywords,
-        df_arm_groups,
-        df_arm_interventions,
-        df_interventions,
-        df_study_interventions,
-        df_other_intervention_names,
-        df_study_intervention_aliases,
-        df_primary_outcomes,
-        df_secondary_outcomes,
-        df_other_outcomes,
-        df_central_contacts,
-        df_study_central_contacts,
-        df_locations,
-        df_study_locations,
-        df_references,
-        df_link_references,
-        df_ipd_references,
-        df_outcome_measures,
-        df_outcome_measure_groups,
-        df_outcome_measure_denom_units,
-        df_outcome_measure_denom_counts,
-        df_outcome_measure_groups_result,
-        df_outcome_measure_analyses,
-        df_outcome_measure_comparison_groups,
-        df_flow_groups,
-        df_flow_periods,
-        df_flow_period_milestones,
-        df_flow_period_milestone_achievements,
-        df_flow_period_withdrawals,
-        df_flow_period_withdrawal_reasons,
-        df_adverse_events,
-        df_event_groups,
-        df_serious_events,
-        df_serious_event_stats,
-        df_other_events,
-        df_other_event_stats,
-        df_violations,
-        df_conditions_mesh,
-        df_study_conditions_mesh,
-        df_conditions_mesh_ancestors,
-        df_study_conditions_mesh_ancestors,
-        df_conditions_browse_leaves,
-        df_study_conditions_browse_leaves,
-        df_conditions_browse_branches,
-        df_study_conditions_browse_branches,
-        df_interventions_mesh,
-        df_study_interventions_mesh,
-        df_interventions_mesh_ancestors,
-        df_study_interventions_mesh_ancestors,
-        df_interventions_browse_leaves,
-        df_study_interventions_browse_leaves,
-        df_interventions_browse_branches,
-        df_study_interventions_browse_branches,
-    ]
+    return {
+        "studies": df_studies,
+        "secondary_ids": df_secondary_ids,
+        "nct_aliases": df_nct_aliases,
+        "sponsors": df_sponsors,
+        "study_sponsors": df_study_sponsors,
+        "collaborators": df_collaborators,
+        "study_collaborators": df_study_collaborators,
+        "conditions": df_conditions,
+        "study_conditions": df_study_conditions,
+        "keywords": df_keywords,
+        "study_keywords": df_study_keywords,
+        "arm_groups": df_arm_groups,
+        "arm_interventions": df_arm_interventions,
+        "interventions": df_interventions,
+        "study_interventions": df_study_interventions,
+        "other_intervention_names": df_other_intervention_names,
+        "study_intervention_aliases": df_study_intervention_aliases,
+        "primary_outcomes": df_primary_outcomes,
+        "secondary_outcomes": df_secondary_outcomes,
+        "other_outcomes": df_other_outcomes,
+        "central_contacts": df_central_contacts,
+        "study_central_contacts": df_study_central_contacts,
+        "locations": df_locations,
+        "study_locations": df_study_locations,
+        "references": df_references,
+        "link_references": df_link_references,
+        "ipd_references": df_ipd_references,
+        "outcome_measures": df_outcome_measures,
+        "outcome_measure_groups": df_outcome_measure_groups,
+        "outcome_measure_denom_units": df_outcome_measure_denom_units,
+        "outcome_measure_denom_counts": df_outcome_measure_denom_counts,
+        "outcome_measure_groups_result": df_outcome_measure_groups_result,
+        "outcome_measure_analyses": df_outcome_measure_analyses,
+        "outcome_measure_comparison_groups": df_outcome_measure_comparison_groups,
+        "flow_groups": df_flow_groups,
+        "flow_periods": df_flow_periods,
+        "flow_period_milestones": df_flow_period_milestones,
+        "flow_period_milestone_achievements": df_flow_period_milestone_achievements,
+        "flow_period_withdrawals": df_flow_period_withdrawals,
+        "flow_period_withdrawal_reasons": df_flow_period_withdrawal_reasons,
+        "adverse_events": df_adverse_events,
+        "event_groups": df_event_groups,
+        "serious_events": df_serious_events,
+        "serious_event_stats": df_serious_event_stats,
+        "other_events": df_other_events,
+        "other_event_stats": df_other_event_stats,
+        "violations": df_violations,
+        "conditions_mesh": df_conditions_mesh,
+        "study_conditions_mesh": df_study_conditions_mesh,
+        "conditions_mesh_ancestors": df_conditions_mesh_ancestors,
+        "study_conditions_mesh_ancestors": df_study_conditions_mesh_ancestors,
+        "conditions_browse_leaves": df_conditions_browse_leaves,
+        "study_conditions_browse_leaves": df_study_conditions_browse_leaves,
+        "conditions_browse_branches": df_conditions_browse_branches,
+        "study_conditions_browse_branches": df_study_conditions_browse_branches,
+        "interventions_mesh": df_interventions_mesh,
+        "study_interventions_mesh": df_study_interventions_mesh,
+        "interventions_mesh_ancestors": df_interventions_mesh_ancestors,
+        "study_interventions_mesh_ancestors": df_study_interventions_mesh_ancestors,
+        "interventions_browse_leaves": df_interventions_browse_leaves,
+        "study_interventions_browse_leaves": df_study_interventions_browse_leaves,
+        "interventions_browse_branches": df_interventions_browse_branches,
+        "study_interventions_browse_branches": df_study_interventions_browse_branches,
+    }

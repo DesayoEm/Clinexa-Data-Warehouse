@@ -14,7 +14,10 @@ class Settings(BaseSettings):
     AWS_ACCESS_KEY_ID: str
     AWS_SECRET_ACCESS_KEY: str
     AWS_REGION: str
-    CTGOV_BUCKET: str
+    CLINEXA_BUCKET: str
+    CTGOV_DEST: str
+    RAW_DEST: str
+    STAGING_DEST: str
 
     DB_NAME: str
     DB_USER: str

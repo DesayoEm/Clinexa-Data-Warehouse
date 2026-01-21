@@ -30,12 +30,14 @@ x-airflow-common:
     FIRST_PAGE_URL: ${FIRST_PAGE_URL}
     BASE_URL: ${BASE_URL}
 
-
     #aws
     AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
     AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
     AWS_REGION: ${AWS_REGION}
-    CTGOV_BUCKET: ${CTGOV_BUCKET}
+    CLINEXA_BUCKET: ${CLINEXA_BUCKET}
+    CTGOV_DEST: ${CTGOV_DEST}
+    RAW_DEST: ${RAW_DEST}
+    STAGING_DEST: ${STAGING_DEST}
 
     DB_NAME: ${DB_NAME}
     DB_USER: ${DB_USER}
@@ -49,6 +51,7 @@ x-airflow-common:
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
     - ${AIRFLOW_INCLUDE_DIR:-.}/include:/opt/airflow/include
+    - ${AIRFLOW_TEST_DIR:-.}/tests:/opt/airflow/tests
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on

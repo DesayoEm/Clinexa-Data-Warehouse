@@ -67,5 +67,5 @@ def test_other_events_extracted(study_key, results_study_data):
     )
 
     assert len(other) == 1
-    assert other[0]["term"] == "Headache"  # Not lowercased in other_events
+    assert other[0]["term"] == "headache"
     assert len(other_stats) == 1

@@ -55,8 +55,7 @@ def test_wait_if_needed_no_wait(
     mock_state_handler.return_value.determine_state.return_value = {
         "last_saved_page": 0,
         "next_page_url": "https://api.ctgov.com/studies",
-    }
-
+    }  #
     from include.etl.extraction.extraction import Extractor
 
     extractor = Extractor(mock_context, mock_s3_hook)
@@ -102,7 +101,10 @@ def test_wait_if_needed_prunes_old_requests(
 def test_save_response(mock_config, mock_state_handler, mock_context, mock_s3_hook):
     """Response is saved to S3 as Parquet."""
     mock_config.FIRST_PAGE_URL = "https://api.ctgov.com/studies"
-    mock_config.CTGOV_BUCKET = "clinical-trials-bucket"
+    mock_config.CLINEXA_BUCKET = "clinical-trials-bucket"
+    mock_config.CTGOV_DEST = "CTGOV"
+    mock_config.RAW_DEST = "raw"
+
     mock_state_handler.return_value.determine_state.return_value = {
         "last_saved_page": 0,
         "next_page_url": "https://api.ctgov.com/studies",
@@ -126,7 +128,7 @@ def test_save_response(mock_config, mock_state_handler, mock_context, mock_s3_ho
     call_kwargs = mock_s3_hook.load_bytes.call_args[1]
 
     assert call_kwargs["bucket_name"] == "clinical-trials-bucket"
-    assert call_kwargs["key"] == "2026-01-15/1.parquet"
+    assert call_kwargs["key"] == "CTGOV/raw/2026-01-15/1.parquet"
     assert call_kwargs["replace"] is True
 
     # ensure page counter incremented
@@ -147,7 +149,7 @@ def test_make_requests_success(
     """Successful extraction returns metadata."""
     mock_config.FIRST_PAGE_URL = "https://api.ctgov.com/studies"
     mock_config.BASE_URL = "https://api.ctgov.com/studies?pageToken="
-    mock_config.CTGOV_BUCKET = "clinical-trials-bucket"
+    mock_config.CLINEXA_BUCKET = "clinical-trials-bucket"
     mock_state_handler.return_value.determine_state.return_value = {
         "last_saved_page": 0,
         "next_page_url": "https://api.ctgov.com/studies",
@@ -177,7 +179,7 @@ def test_make_requests_retry_on_failure(
     """Request retries on non-200 response."""
     mock_config.FIRST_PAGE_URL = "https://api.ctgov.com/studies"
     mock_config.BASE_URL = "https://api.ctgov.com/studies?pageToken="
-    mock_config.CTGOV_BUCKET = "clinical-trials-bucket"
+    mock_config.CLINEXA_BUCKET = "clinical-trials-bucket"
     mock_state_handler.return_value.determine_state.return_value = {
         "last_saved_page": 0,
         "next_page_url": "https://api.ctgov.com/studies",
@@ -212,7 +214,7 @@ def test_make_requests_exhaustion_error(
     """Raises RequestExhaustionError after max retries."""
     mock_config.FIRST_PAGE_URL = "https://api.ctgov.com/studies"
     mock_config.BASE_URL = "https://api.ctgov.com/studies?pageToken="
-    mock_config.CTGOV_BUCKET = "clinical-trials-bucket"
+    mock_config.CLINEXA_BUCKET = "clinical-trials-bucket"
     mock_state_handler.return_value.determine_state.return_value = {
         "last_saved_page": 0,
         "next_page_url": "https://api.ctgov.com/studies",
@@ -232,7 +234,7 @@ def test_make_requests_exhaustion_error(
         extractor.make_requests()
 
     # Check checkpoint was saved before raising
-    mock_state_handler.return_value.save_checkpoint.assert_called()
+    mock_state_handler.return_value.mark_checkpoint.assert_called()
 
 
 @patch("include.etl.extraction.extraction.requests")
@@ -249,7 +251,7 @@ def test_make_requests_saves_manifest(
     """Manifest is saved to S3 on successful completion."""
     mock_config.FIRST_PAGE_URL = "https://api.ctgov.com/studies"
     mock_config.BASE_URL = "https://api.ctgov.com/studies?pageToken="
-    mock_config.CTGOV_BUCKET = "clinical-trials-bucket"
+    mock_config.CLINEXA_BUCKET = "clinical-trials-bucket"
     mock_state_handler.return_value.determine_state.return_value = {
         "last_saved_page": 0,
         "next_page_url": "https://api.ctgov.com/studies",
@@ -286,7 +288,7 @@ def test_save_response_increments_page_counter(
 ):
     """Page counter increments after each successful save."""
     mock_config.FIRST_PAGE_URL = "https://api.ctgov.com/studies"
-    mock_config.CTGOV_BUCKET = "clinical-trials-bucket"
+    mock_config.CLINEXA_BUCKET = "clinical-trials-bucket"
     mock_state_handler.return_value.determine_state.return_value = {
         "last_saved_page": 0,
         "next_page_url": "https://api.ctgov.com/studies",
@@ -314,7 +316,7 @@ def test_token_tracking(
     """Previous and current tokens are tracked correctly."""
     mock_config.FIRST_PAGE_URL = "https://api.ctgov.com/studies"
     mock_config.BASE_URL = "https://api.ctgov.com/studies?pageToken="
-    mock_config.CTGOV_BUCKET = "clinical-trials-bucket"
+    mock_config.CLINEXA_BUCKET = "clinical-trials-bucket"
     mock_state_handler.return_value.determine_state.return_value = {
         "last_saved_page": 0,
         "next_page_url": "https://api.ctgov.com/studies",

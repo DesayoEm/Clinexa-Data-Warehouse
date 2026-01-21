@@ -7,7 +7,7 @@ from tests.airflow_tests.test_tasks import ExtractorWithFailureInjection
 
 @dag(
     dag_id="test_process_studies",
-    start_date=datetime(2025, 10, 27),
+    start_date=datetime(2026, 1, 19),
     catchup=False,
     schedule=None,
     tags=["ctgov"],

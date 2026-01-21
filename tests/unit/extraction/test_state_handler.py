@@ -99,7 +99,7 @@ def test_save_checkpoint(mock_config, mock_variable, mock_context):
     from include.etl.extraction.checkpoint import StateHandler
 
     handler = StateHandler(mock_context)
-    handler.save_checkpoint(
+    handler.mark_checkpoint(
         previous_token="token_page_4",
         last_saved_page=5,
         last_saved_token="token_page_6",

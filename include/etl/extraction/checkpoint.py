@@ -122,7 +122,7 @@ class StateHandler:
             self.log.info(f"Defaulting to 0")
             return default_state
 
-    def save_checkpoint(
+    def mark_checkpoint(
         self, previous_token: str, last_saved_page: int, last_saved_token: str
     ) -> None:
         """
