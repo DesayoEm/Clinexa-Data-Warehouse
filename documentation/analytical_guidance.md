@@ -32,6 +32,11 @@ outcome_measurements
 
 
 
+### All boolean fields
+
+Fields are  asserted only when true; absence does not imply false.
+
+
 ## Field-Specific Data Quality Guidance
 
 ### Study Status

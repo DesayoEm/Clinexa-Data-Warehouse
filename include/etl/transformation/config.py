@@ -9,7 +9,7 @@ SCALAR_FIELDS = {
     "brief_summary": "protocolSection.descriptionModule.briefSummary",
     "detailed_desc": "protocolSection.descriptionModule.detailedDescription",
     # sponsorCollaboratorsModule
-    "responsible_party": "protocolSection.sponsorCollaboratorsModule.responsibleParty.type",
+    "responsible_party_type": "protocolSection.sponsorCollaboratorsModule.responsibleParty.type",
     # Design
     "study_type": "protocolSection.designModule.studyType",
     "patient_registry": "protocolSection.designModule.patientRegistry",
@@ -72,8 +72,8 @@ SCALAR_FIELDS = {
     # Certain agreements
     "certain_agreement_pi_sponsor_employee": "resultsSection.moreInfoModule.certainAgreement.piSponsorEmployee",
     "certain_agreement_restrictive": "resultsSection.moreInfoModule.certainAgreement.restrictiveAgreement",
-    "certain_agreement_other_details": "resultsSection.moreInfoModule.certainAgreement.otherDetails",
     "certain_agreement_restriction_type": "resultsSection.moreInfoModule.certainAgreement.restrictionType",
+    "certain_agreement_other_details": "resultsSection.moreInfoModule.certainAgreement.otherDetails",
     # Submission tracking
     "sub_tracking_estimated_results_date": "derivedSection.miscInfoModule.submissionTracking.estimatedResultsFirstSubmitDate",
     # Miscellaneous
