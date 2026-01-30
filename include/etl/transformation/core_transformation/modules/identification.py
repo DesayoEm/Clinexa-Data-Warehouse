@@ -61,9 +61,12 @@ def transform_identification_module(study_key: str, study_data: pd.Series) -> Tu
 
     if isinstance(nct_id_aliases, (list, np.ndarray)) and len(nct_id_aliases) > 0:
         for nct_id_alias in nct_id_aliases:
+            id_alias_key = generate_key(nct_id_alias)
+
             nct_aliases.append(
                 {
                     "study_key": study_key,
+                    "id_alias_key": id_alias_key,
                     "id_alias": nct_id_alias,
                 }
             )

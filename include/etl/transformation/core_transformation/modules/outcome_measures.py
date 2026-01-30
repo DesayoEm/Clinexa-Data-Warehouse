@@ -73,6 +73,7 @@ def transform_outcome_measures_module(study_key: str, study_data: pd.Series) -> 
                     "calculate_pct": outcome_measure.get("calculatePct"),
                     "time_frame": outcome_measure.get("timeFrame"),
                     "denom_units_selected": outcome_measure.get("denomUnitsSelected"),
+                    "type_units_analysed": outcome_measure.get("typeUnitsAnalyzed"),
                 }
             )
 
@@ -201,7 +202,24 @@ def transform_outcome_measures_module(study_key: str, study_data: pd.Series) -> 
                             "statistical_comment": analysis.get("statisticalComment"),
                             "p_value": analysis.get("pValue"),
                             "p_value_comment": analysis.get("pValueComment"),
+                            "ci_num_sides": analysis.get("ciNumSides"),
+                            "ci_pct_value": analysis.get("ciPctValue"),
+                            "ci_lower_limit": analysis.get("ciLowerLimit"),
+                            "ci_upper_limit": analysis.get("statisticalMethod"),
+                            "ci_lower_limit_cmt": analysis.get("ciLowerLimitComment"),
+                            "ci_upper_limit_cmt": analysis.get("ciUpperLimitComment"),
+                            "estimate_cmt": analysis.get("estimateComment"),
+                            "tested_non_inferiority": analysis.get(
+                                "testedNonInferiority"
+                            ),
                             "non_inferiority_type": analysis.get("nonInferiorityType"),
+                            "non_inferiority_comment": analysis.get(
+                                "nonInferiorityComment"
+                            ),
+                            "other_analysis_desc": analysis.get(
+                                "otherAnalysisDescription"
+                            ),
+                            "group_desc": analysis.get("groupDescription"),
                         }
                     )
 

@@ -609,6 +609,9 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
             subset=["branch_key", "study_key"]
         )
     )
+    df_outcome_measure_denom_units = df_outcome_measure_denom_units.drop_duplicates(
+        subset=["denom_unit_key"]
+    )
 
     return {
         "studies": df_studies,

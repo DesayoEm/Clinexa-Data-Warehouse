@@ -132,9 +132,125 @@ CREATE TYPE AgreementRestrictionType AS ENUM(
     'GT60',
     'OTHER'
 );
+
+CREATE TYPE SecondaryIdType AS ENUM(
+    'NIH',
+    'FDA',
+    'VA',
+    'CDC',
+    'AHRQ',
+    'SAMHSA',
+    'OTHER_GRANT',
+    'EUDRACT_NUMBER',
+    'CTIS',
+    'OTHER'
+);
+
+CREATE TYPE AgencyClass AS ENUM(
+    'NIH',
+    'FED',
+    'OTHER_GOV',
+    'INDIV',
+    'INDUSTRY',
+    'NETWORK',
+    'AMBIG',
+    'OTHER',
+    'UNKNOWN'
+);
+
+
+CREATE TYPE ArmGroupType AS ENUM(
+    'EXPERIMENTAL',
+    'ACTIVE_COMPARATOR',
+    'PLACEBO_COMPARATOR',
+    'SHAM_COMPARATOR',
+    'NO_INTERVENTION',
+    'OTHER'
+);
+
+CREATE TYPE InterventionType AS ENUM(
+    'BEHAVIORAL',
+    'BIOLOGICAL',
+    'COMBINATION_PRODUCT',
+    'DEVICE',
+    'DIAGNOSTIC_TEST',
+    'DIETARY_SUPPLEMENT',
+    'DRUG',
+    'GENETIC',
+    'PROCEDURE',
+    'RADIATION',
+    'OTHER'
+);
+
+CREATE TYPE ReferenceType AS ENUM(
+    'BACKGROUND',
+    'RESULT',
+    'DERIVED'
+);
+
+CREATE TYPE OutcomeMeasureType AS ENUM(
+    'PRIMARY',
+    'SECONDARY',
+    'OTHER_PRE_SPECIFIED',
+    'POST_HOC'
+);
+
+CREATE TYPE ReportingStatus AS ENUM(
+    'NOT_POSTED',
+    'POSTED'
+);
+
+CREATE TYPE MeasureParam AS ENUM(
+    'GEOMETRIC_MEAN',
+    'GEOMETRIC_LEAST_SQUARES_MEAN',
+    'LEAST_SQUARES_MEAN',
+    'LOG_MEAN',
+    'MEAN',
+    'MEDIAN',
+    'NUMBER',
+    'COUNT_OF_PARTICIPANTS',
+    'COUNT_OF_UNITS'
+);
+
+CREATE TYPE MeasureDispersionType AS ENUM(
+    'NA',
+    'STANDARD_DEVIATION',
+    'STANDARD_ERROR',
+    'INTER_QUARTILE_RANGE',
+    'FULL_RANGE',
+    'CONFIDENCE_80',
+    'CONFIDENCE_90',
+    'CONFIDENCE_95',
+    'CONFIDENCE_975',
+    'CONFIDENCE_99',
+    'CONFIDENCE_OTHER',
+    'GEOMETRIC_COEFFICIENT'
+);
+
+CREATE TYPE AnalysisDispersionType AS ENUM(
+    'STANDARD_DEVIATION',
+    'STANDARD_ERROR_OF_MEAN'
+);
+
+CREATE TYPE ConfidenceIntervalNumSides AS ENUM(
+    'ONE_SIDED',
+    'TWO_SIDED'
+);
+
+CREATE TYPE NonInferiorityType AS ENUM(
+    'SUPERIORITY',
+    'NON_INFERIORITY',
+    'EQUIVALENCE',
+    'OTHER',
+    'NON_INFERIORITY_OR_EQUIVALENCE',
+    'SUPERIORITY_OR_OTHER',
+    'NON_INFERIORITY_OR_EQUIVALENCE_LEGACY',
+    'SUPERIORITY_OR_OTHER_LEGACY'
+);
+
 --- fixed character lengths are created using the registry docs as as a guide
 
--- STAGING TABLES
+
 
 -- STUDIES
 CREATE TABLE IF NOT EXISTS staging.studies(
@@ -246,15 +362,404 @@ CREATE TABLE IF NOT EXISTS staging.studies(
     last_updated DATE,
 
     -- ETL Audit Cols
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    etl_batch_id UUID,
-    source_file VARCHAR(255)
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- INDEXES
+-- STUDIES INDEXES
 
 CREATE INDEX idx_studies_overall_status ON staging.studies(overall_status);
 CREATE INDEX idx_studies_study_type ON staging.studies(study_type);
 CREATE INDEX idx_studies_last_updated ON staging.studies(last_updated);
 CREATE INDEX idx_studies_loaded_at ON staging.studies(loaded_at);
+CREATE INDEX idx_studies_execution_date ON staging.studies(execution_date);
 
+
+-- Secondary IDs
+CREATE TABLE staging.secondary_ids (
+    secondary_id_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    id VARCHAR(30),
+    type SecondaryIdType,
+    domain VARCHAR(120),
+    link TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- NCT Aliases
+CREATE TABLE staging.nct_aliases (
+    id_alias_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    id_alias VARCHAR(15) NOT NULL,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+);
+
+-- Lead Sponsor
+CREATE TABLE staging.sponsors (
+    sponsor_key CHAR(16) PRIMARY KEY,
+    name TEXT,
+    sponsor_class AgencyClass,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Study-Sponsor
+CREATE TABLE staging.study_sponsors (
+    study_key CHAR(16) NOT NULL,
+    sponsor_key CHAR(16) NOT NULL,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (study_key, sponsor_key)
+);
+
+-- Collaborator
+CREATE TABLE staging.collaborators (
+    collaborator_key CHAR(16) PRIMARY KEY,
+    name VARCHAR(160),
+    collaborator_class AgencyClass,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Study-Collaborator
+CREATE TABLE staging.study_collaborators (
+    study_key CHAR(16) NOT NULL,
+    collaborator_key CHAR(16) NOT NULL,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (study_key, collaborator_key)
+);
+
+-- ConditionS
+CREATE TABLE staging.conditions (
+    condition_key CHAR(16) PRIMARY KEY,
+    condition_name VARCHAR(200),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Study-Condition
+CREATE TABLE staging.study_conditions (
+    study_key CHAR(16) NOT NULL,
+    condition_key CHAR(16) NOT NULL,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (study_key, condition_key)
+);
+
+-- Keywords
+CREATE TABLE staging.keywords (
+    keyword_key CHAR(16) PRIMARY KEY,
+    keyword_name VARCHAR(200),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Study-Keyword
+CREATE TABLE staging.study_keywords (
+    study_key CHAR(16) NOT NULL,
+    keyword_key CHAR(16) NOT NULL,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (study_key, keyword_key)
+);
+
+-- Arm Groups
+CREATE TABLE staging.arm_groups (
+    arm_group_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    arm_label VARCHAR(100),
+    arm_description VARCHAR(999),
+    arm_type ArmGroupType,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Arm-Intervention
+CREATE TABLE staging.arm_interventions (
+    study_key CHAR(16) NOT NULL,
+    arm_group_key CHAR(16) NOT NULL,
+    arm_intervention_key CHAR(16) NOT NULL,
+    arm_intervention_name VARCHAR(200),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (study_key, arm_group_key, arm_intervention_key)
+);
+
+-- Interventions
+CREATE TABLE staging.interventions (
+    intervention_key CHAR(16) PRIMARY KEY,
+    intervention_name VARCHAR(200),
+    intervention_type InterventionType,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Study-Intervention
+CREATE TABLE staging.study_interventions (
+    study_key CHAR(16) NOT NULL,
+    intervention_key CHAR(16) NOT NULL,
+    description VARCHAR(1000), --study specific description
+    is_primary_name BOOLEAN,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (study_key, intervention_key)
+);
+
+-- Other Intervention Names
+CREATE TABLE staging.other_intervention_names (
+    intervention_key CHAR(16) PRIMARY KEY,
+    intervention_name VARCHAR(200),
+    intervention_type InterventionType,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Study-Other Intervention Names
+CREATE TABLE staging.study_intervention_aliases (
+    study_key CHAR(16) NOT NULL,
+    intervention_key CHAR(16) NOT NULL,
+    description VARCHAR(1000),
+    is_primary_name BOOLEAN,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (study_key, intervention_key)
+);
+
+-- Primary Outcomes
+CREATE TABLE staging.primary_outcomes (
+    outcome_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    measure VARCHAR(254),
+    description VARCHAR(999),
+    time_frame VARCHAR(254),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Secondary Outcomes
+CREATE TABLE staging.secondary_outcomes (
+    outcome_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    measure VARCHAR(254),
+    description VARCHAR(999),
+    time_frame VARCHAR(254),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Other Outcomes
+CREATE TABLE staging.other_outcomes (
+    outcome_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    measure VARCHAR(254),
+    description VARCHAR(999),
+    time_frame VARCHAR(254),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Study References
+CREATE TABLE staging.study_references (
+    ref_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    pmid VARCHAR(20),
+    type ReferenceType,
+    citation VARCHAR(2000),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Link References
+CREATE TABLE staging.link_references (
+    link_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    label VARCHAR(254),
+    url VARCHAR(3999),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- IPD References
+CREATE TABLE staging.ipd_references (
+    ipd_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    id VARCHAR(30),
+    type VARCHAR(100),
+    url VARCHAR(3999),
+    comment VARCHAR(1000),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Outcome Measures
+CREATE TABLE staging.outcome_measures (
+    outcome_measure_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    outcome_type OutcomeMeasureType,
+    title VARCHAR(255),
+    description VARCHAR(999),
+    population_description VARCHAR(500),
+    reporting_status ReportingStatus,
+    anticipated_posting_date DATE,
+    param_type MeasureParam,
+    dispersion_type MeasureDispersionType,
+    unit_of_measure VARCHAR(40),
+    calculate_pct BOOLEAN,
+    time_frame VARCHAR(255),
+    denom_units_selected TEXT,
+    type_units_analysed VARCHAR(40),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Outcome Measure Groups
+CREATE TABLE staging.outcome_measure_groups (
+    group_key CHAR(16) PRIMARY KEY,
+    outcome_measure_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL,
+    group_id VARCHAR(20),
+    title VARCHAR(100),
+    description TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Outcome Measure Denominator Units
+CREATE TABLE staging.outcome_measure_denom_units (
+    denom_unit_key CHAR(16) PRIMARY KEY,
+    denom_unit VARCHAR(100),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Outcome Measure Denominator Counts  (sample sizes per group/unit)
+CREATE TABLE staging.outcome_measure_denom_counts (
+    denom_count_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    outcome_measure_key CHAR(16) NOT NULL,
+    denom_unit_key CHAR(16) NOT NULL,
+    group_key CHAR(16) NOT NULL,
+    group_id VARCHAR(20),
+    denom_value VARCHAR(20), --INT but API returns a string representation
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Outcome Measure Groups Result (measurement values per group)
+CREATE TABLE staging.outcome_measure_groups_result (
+    group_key CHAR(16) NOT NULL,
+    outcome_measure_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL,
+    group_id VARCHAR(20),
+    value VARCHAR(500),
+    lower_limit VARCHAR(20), --FLOAT but API returns a string representation
+    upper_limit VARCHAR(20), --FLOAT but API returns a string representation
+    spread VARCHAR(20), --FLOAT but API returns a string representation
+    comment TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (group_key, outcome_measure_key, study_key)
+);
+
+-- Outcome Measure Analyses (statistical test results)
+CREATE TABLE staging.outcome_measure_analyses (
+    analysis_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    outcome_measure_key CHAR(16) NOT NULL,
+    param_type VARCHAR(50),
+    param_value VARCHAR(20), --FLOAT but API returns a string representation
+    dispersion_type AnalysisDispersionType,
+    dispersion_value VARCHAR(20), --FLOAT but API returns a string representation
+    statistical_method VARCHAR(50),
+    statistical_comment VARCHAR(10),
+    p_value VARCHAR(20), --FLOAT but API returns a string representation
+    p_value_comment VARCHAR(250),
+    ci_num_sides ConfidenceIntervalNumSides,
+    ci_pct_value VARCHAR(20), --FLOAT but API returns a string representation
+    ci_lower_limit VARCHAR(20), --FLOAT but API returns a string representation
+    ci_upper_limit VARCHAR(20), --FLOAT but API returns a string representation
+    ci_lower_limit_cmt VARCHAR(250),
+    ci_upper_limit_cmt VARCHAR(250),
+    estimate_cmt VARCHAR(250),
+    tested_non_inferiority BOOLEAN,
+    non_inferiority_type NonInferiorityType,
+    other_analysis_desc TEXT,
+    group_desc VARCHAR(500),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Outcome Measure Comparison Groups
+CREATE TABLE staging.outcome_measure_comparison_groups (
+    study_key CHAR(16) NOT NULL,
+    outcome_measure_key CHAR(16) NOT NULL,
+    analysis_key CHAR(16) NOT NULL,
+    group_key CHAR(16) NOT NULL,
+    group_id VARCHAR(10),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (study_key, outcome_measure_key, analysis_key, group_key)
+);

@@ -39,7 +39,6 @@ class StudyResult:
     references: List
     link_references: List
     ipd_references: List
-
     outcome_measures: List
     outcome_measure_groups: List
     outcome_measure_denom_units: List
@@ -47,13 +46,13 @@ class StudyResult:
     outcome_measure_groups_result: List
     outcome_measure_analyses: List
     outcome_measure_comparison_groups: List
+
     flow_groups: List
     flow_periods: List
     flow_period_milestones: List
     flow_period_milestone_achievements: List
     df_flow_period_withdrawals: List
     flow_period_withdrawal_reasons: List
-
     adverse_events: List
     event_groups: List
     serious_events: List

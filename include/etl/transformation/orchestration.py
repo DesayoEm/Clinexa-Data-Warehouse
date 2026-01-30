@@ -183,6 +183,8 @@ class Transformer:
                 merged_batch_results = self.merge_batch_results(batch_result)
                 dfs = post_process_tables(merged_batch_results)
 
+                dfs = self.add_audit_columns(dfs)
+
                 self.write_to_datalake(index, dfs)
 
                 self.mark_checkpoint(index, s3_key)
@@ -190,6 +192,29 @@ class Transformer:
             except Exception as e:
                 self.log.exception(f"File failed: Exception: {str(e)}")
                 raise
+
+    def add_audit_columns(
+        self, dfs: Dict[str, pd.DataFrame]
+    ) -> Dict[str, pd.DataFrame]:
+        """
+        Add Airflow audit metadata to all DataFrames.
+
+        Args:
+            dfs: Dictionary of table_name -> DataFrame
+
+        Returns:
+            Same dictionary with audit columns added to each DataFrame
+        """
+
+        for table_name, df in dfs.items():
+            if df.empty:
+                continue
+
+            df["dag_execution_date"] = self.execution_date
+            df["dag_id"] = self.context["dag"].dag_id
+            df["dag_run_id"] = self.context["dag_run"].run_id
+
+        return dfs
 
     def write_to_datalake(self, index: int, dfs: Dict[str, pd.DataFrame]) -> None:
         bucket = config.CLINEXA_BUCKET
