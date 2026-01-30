@@ -44,6 +44,7 @@ def transform_participant_flow_module(study_key: str, study_data: pd.Series) -> 
     flow_periods = []
     flow_period_milestones = []
     flow_period_milestone_achievements = []
+    withdrawal_types = []
     flow_period_withdrawals = []
     flow_period_withdrawal_reasons = []
 
@@ -135,18 +136,21 @@ def transform_participant_flow_module(study_key: str, study_data: pd.Series) -> 
             ):
                 for withdrawal in period_withdrawals:
                     withdrawal_type = withdrawal.get("type")
-                    withdrawal_comment = withdrawal.get("comment")
-                    withdrawal_key = generate_key(
-                        study_key, period_key, withdrawal_type, withdrawal_comment
+                    withdrawal_type_key = generate_key(withdrawal_type)
+
+                    withdrawal_types.append(
+                        {
+                            "withdrawal_type_key": withdrawal_type_key,
+                            "type": withdrawal_type,
+                        }
                     )
 
                     flow_period_withdrawals.append(
                         {
                             "study_key": study_key,
                             "period_key": period_key,
-                            "withdrawal_key": withdrawal_key,
-                            "type": withdrawal_type,
-                            "comment": withdrawal_comment,
+                            "withdrawal_type_key": withdrawal_type_key,
+                            "comment": withdrawal.get("comment"),
                         }
                     )
 
@@ -165,7 +169,7 @@ def transform_participant_flow_module(study_key: str, study_data: pd.Series) -> 
                             reason_key = generate_key(
                                 study_key,
                                 period_key,
-                                withdrawal_key,
+                                withdrawal_type_key,
                                 reason_group_id,
                                 reason_comment,
                             )
@@ -176,7 +180,7 @@ def transform_participant_flow_module(study_key: str, study_data: pd.Series) -> 
                                 {
                                     "study_key": study_key,
                                     "period_key": period_key,
-                                    "withdrawal_key": withdrawal_key,
+                                    "withdrawal_type_key": withdrawal_type_key,
                                     "reason_key": reason_key,
                                     "group_id": reason_group_id,
                                     "group_key": group_key,
@@ -190,6 +194,7 @@ def transform_participant_flow_module(study_key: str, study_data: pd.Series) -> 
         flow_periods,
         flow_period_milestones,
         flow_period_milestone_achievements,
+        withdrawal_types,
         flow_period_withdrawals,
         flow_period_withdrawal_reasons,
     )

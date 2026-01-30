@@ -248,6 +248,23 @@ CREATE TYPE NonInferiorityType AS ENUM(
     'SUPERIORITY_OR_OTHER_LEGACY'
 );
 
+CREATE TYPE EventAssessment AS ENUM(
+    'NON_SYSTEMATIC_ASSESSMENT',
+    'SYSTEMATIC_ASSESSMENT'
+);
+
+CREATE TYPE ViolationEventType AS ENUM(
+    'VIOLATION_IDENTIFIED',
+    'CORRECTION_CONFIRMED',
+    'PENALTY_IMPOSED',
+    'ISSUES_IN_LETTER_ADDRESSED_CONFIRMED'
+);
+
+CREATE TYPE BrowseLeafRelevance AS ENUM(
+    'LOW',
+    'HIGH'
+);
+
 --- fixed character lengths are created using the registry docs as as a guide
 
 
@@ -763,3 +780,407 @@ CREATE TABLE staging.outcome_measure_comparison_groups (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (study_key, outcome_measure_key, analysis_key, group_key)
 );
+
+-- Flow Groups
+CREATE TABLE staging.flow_groups (
+    group_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    id VARCHAR(20),
+    title VARCHAR(100),
+    description TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Flow Periods
+CREATE TABLE staging.flow_periods (
+    period_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    title VARCHAR(40),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Flow Period Milestones
+CREATE TABLE staging.flow_period_milestones (
+    milestone_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    period_key CHAR(16) NOT NULL,
+    type VARCHAR(20),
+    comment VARCHAR(500),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Flow Period Milestone Achievements
+CREATE TABLE staging.flow_period_milestone_achievements (
+    study_key CHAR(16) NOT NULL,
+    period_key CHAR(16) NOT NULL,
+    milestone_key CHAR(16) NOT NULL,
+    group_key CHAR(16) NOT NULL,
+    group_id VARCHAR(10),
+    comment VARCHAR(500),
+    num_subjects VARCHAR(20),
+    num_units VARCHAR(20),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (study_key, period_key, milestone_key, group_key)
+);
+
+-- Withdrawal types
+CREATE TABLE staging.withdrawal_types (
+    withdrawal_type_key CHAR(16) PRIMARY KEY,
+    type VARCHAR(20),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- Flow Period Withdrawals
+CREATE TABLE staging.flow_period_withdrawals (
+    study_key CHAR(16) NOT NULL,
+    period_key CHAR(16) NOT NULL,
+    withdrawal_type_key CHAR(16) NOT NULL,
+    comment TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (study_key, period_key, withdrawal_type_key)
+);
+
+-- Flow Period Withdrawal Reasons
+CREATE TABLE staging.flow_period_withdrawal_reasons (
+    reason_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    period_key CHAR(16) NOT NULL,
+    withdrawal_type_key CHAR(16) NOT NULL,
+    group_key CHAR(16) NOT NULL,
+    group_id VARCHAR(20),
+    reason TEXT,
+    num_subjects VARCHAR(20), --INT but API returns a string representation
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Adverse Events
+CREATE TABLE staging.adverse_events (
+    adverse_event_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    description VARCHAR(500),
+    frequency_threshold VARCHAR(20), --INT/FLOAT but API returns a string representation
+    time_frame VARCHAR(500),
+    mortality_cmt TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Event Groups
+CREATE TABLE staging.event_groups (
+    event_group_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    adverse_event_key CHAR(16) NOT NULL,
+    group_id VARCHAR(20),
+    title VARCHAR(100),
+    description TEXT,
+    num_deaths INTEGER,
+    num_deaths_at_risk INTEGER,
+    num_serious INTEGER,
+    num_serious_at_risk INTEGER,
+    num_other INTEGER,
+    num_other_at_risk INTEGER,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Serious Events
+CREATE TABLE staging.serious_events (
+    serious_event_key CHAR(16) PRIMARY KEY,
+    adverse_event_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL,
+    term TEXT,
+    organ_system VARCHAR(200),
+    source_vocab VARCHAR(20),
+    assessment_type EventAssessment,
+    notes VARCHAR(250),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Serious Event Stats
+CREATE TABLE staging.serious_event_stats (
+    event_stat_key CHAR(16) PRIMARY KEY,
+    adverse_event_key CHAR(16) NOT NULL,
+    serious_event_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL,
+    group_key CHAR(16) NOT NULL,
+    group_id VARCHAR(20),
+    num_events INTEGER,
+    num_affected INTEGER,
+    num_at_risk INTEGER,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Other Events
+CREATE TABLE staging.other_events (
+    other_event_key CHAR(16) PRIMARY KEY,
+    adverse_event_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL,
+    term TEXT,
+    organ_system VARCHAR(200),
+    source_vocab VARCHAR(20),
+    assessment_type EventAssessment,
+    notes VARCHAR(250),
+    notes TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Other Event Stats
+CREATE TABLE staging.other_event_stats (
+    event_stat_key CHAR(16) PRIMARY KEY,
+    other_event_key CHAR(16) NOT NULL,
+    adverse_event_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL,
+    group_key CHAR(16) NOT NULL,
+    group_id VARCHAR(20),
+    num_events INTEGER,
+    num_affected INTEGER,
+    num_at_risk INTEGER,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- FDAAA 801 Violations
+CREATE TABLE staging.violations (
+    violation_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL,
+    violation_type ViolationEventType,
+    issued_date DATE,
+    description TEXT,
+    creation_date DATE,
+    release_date DATE,
+    posted_date DATE,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Conditions MeSH
+CREATE TABLE staging.conditions_mesh (
+    mesh_key CHAR(16) PRIMARY KEY,
+    mesh_id VARCHAR(10),
+    mesh_term TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Study-Conditions MESH
+CREATE TABLE staging.study_conditions_mesh (
+    mesh_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (mesh_key, study_key)
+);
+
+-- Conditions MeSH Ancestors dimension table (parent terms in MeSH tree)
+CREATE TABLE staging.conditions_mesh_ancestors (
+    ancestor_key CHAR(16) PRIMARY KEY,
+    ancestor_id VARCHAR(10),
+    term TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Study-Conditions MeSH Ancestors
+CREATE TABLE staging.study_conditions_mesh_ancestors (
+    ancestor_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (ancestor_key, study_key)
+);
+
+-- Conditions Browse Leaves
+CREATE TABLE staging.conditions_browse_leaves (
+    leaf_key CHAR(16) PRIMARY KEY,
+    leaf_id VARCHAR(10),
+    name TEXT,
+    as_found VARCHAR(255),
+    relevance BrowseLeafRelevance,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Study-Conditions Browse
+CREATE TABLE staging.study_conditions_browse_leaves (
+    leaf_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (leaf_key, study_key)
+);
+
+-- Conditions Browse Branches
+CREATE TABLE staging.conditions_browse_branches (
+    branch_key CHAR(16) PRIMARY KEY,
+    abbrev TEXT,
+    name TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Study-Conditions Browse Branches
+CREATE TABLE staging.study_conditions_browse_branches (
+    branch_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (branch_key, study_key)
+);
+
+-- interventions MeSH
+CREATE TABLE staging.interventions_mesh (
+    mesh_key CHAR(16) PRIMARY KEY,
+    mesh_id VARCHAR(10),
+    mesh_term TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Study-interventions MESH
+CREATE TABLE staging.study_interventions_mesh (
+    mesh_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (mesh_key, study_key)
+);
+
+-- interventions MeSH Ancestors dimension table (parent terms in MeSH tree)
+CREATE TABLE staging.interventions_mesh_ancestors (
+    ancestor_key CHAR(16) PRIMARY KEY,
+    ancestor_id VARCHAR(10),
+    term TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Study-interventions MeSH Ancestors
+CREATE TABLE staging.study_interventions_mesh_ancestors (
+    ancestor_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (ancestor_key, study_key)
+);
+
+-- interventions Browse Leaves
+CREATE TABLE staging.interventions_browse_leaves (
+    leaf_key CHAR(16) PRIMARY KEY,
+    leaf_id VARCHAR(10),
+    name TEXT,
+    as_found VARCHAR(255),
+    relevance BrowseLeafRelevance,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Study-interventions Browse
+CREATE TABLE staging.study_interventions_browse_leaves (
+    leaf_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (leaf_key, study_key)
+);
+
+-- interventions Browse Branches
+CREATE TABLE staging.interventions_browse_branches (
+    branch_key CHAR(16) PRIMARY KEY,
+    abbrev TEXT,
+    name TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Study-interventions Browse Branches
+CREATE TABLE staging.study_interventions_browse_branches (
+    branch_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (branch_key, study_key)
+);
+
+
+
+
+
+
+
+
+
+
+
+
+

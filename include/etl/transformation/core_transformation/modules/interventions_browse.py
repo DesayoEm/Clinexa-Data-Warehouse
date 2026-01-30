@@ -135,15 +135,15 @@ def transform_interventions_browse_module(
         and len(mesh_browse_branches) > 0
     ):
         for browse_branch in mesh_browse_branches:
-            branch_id = browse_branch.get("id")
-            branch_key = generate_key(branch_id)
+            branch_abbrev = browse_branch.get("abbrev")
+            branch_name = browse_branch.get("name")
+            branch_key = generate_key(branch_abbrev, branch_name)
 
             interventions_browse_branches.append(
                 {
                     "branch_key": branch_key,
-                    "name": browse_branch.get("name").lower(),
-                    "as_found": browse_branch.get("asFound"),
-                    "relevance": browse_branch.get("relevance"),
+                    "abbrev": browse_branch.get("abbrev"),
+                    "name": branch_name.lower(),
                 }
             )
 

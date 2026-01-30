@@ -46,12 +46,12 @@ class StudyResult:
     outcome_measure_groups_result: List
     outcome_measure_analyses: List
     outcome_measure_comparison_groups: List
-
     flow_groups: List
     flow_periods: List
     flow_period_milestones: List
     flow_period_milestone_achievements: List
-    df_flow_period_withdrawals: List
+    withdrawal_types: List
+    flow_period_withdrawals: List
     flow_period_withdrawal_reasons: List
     adverse_events: List
     event_groups: List

@@ -231,7 +231,8 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
         flow_periods,
         flow_period_milestones,
         flow_period_milestone_achievements,
-        df_flow_period_withdrawals,
+        withdrawal_types,
+        flow_period_withdrawals,
         flow_period_withdrawal_reasons,
     ) = transform_participant_flow_module(study_key, study)
     result["flow_groups"].extend(flow_groups)
@@ -240,7 +241,8 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
     result["flow_period_milestone_achievements"].extend(
         flow_period_milestone_achievements
     )
-    result["df_flow_period_withdrawals"].extend(df_flow_period_withdrawals)
+    result["withdrawal_types"].extend(withdrawal_types)
+    result["df_flow_period_withdrawals"].extend(flow_period_withdrawals)
     result["flow_period_withdrawal_reasons"].extend(flow_period_withdrawal_reasons)
 
     # adverseEventsModule
@@ -350,7 +352,8 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
         flow_periods=result["flow_periods"],
         flow_period_milestones=result["flow_period_milestones"],
         flow_period_milestone_achievements=result["flow_period_milestone_achievements"],
-        df_flow_period_withdrawals=result["df_flow_period_withdrawals"],
+        withdrawal_types=result["withdrawal_types"],
+        flow_period_withdrawals=result["df_flow_period_withdrawals"],
         flow_period_withdrawal_reasons=result["flow_period_withdrawal_reasons"],
         adverse_events=result["adverse_events"],
         event_groups=result["event_groups"],
@@ -465,6 +468,7 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
     df_flow_period_milestone_achievements = pd.DataFrame(
         results["flow_period_milestone_achievements"]
     )
+    df_withdrawal_types = pd.DataFrame(results["withdrawal_types"])
     df_flow_period_withdrawals = pd.DataFrame(results["df_flow_period_withdrawals"])
     df_flow_period_withdrawal_reasons = pd.DataFrame(
         results["flow_period_withdrawal_reasons"]
@@ -552,6 +556,16 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
     df_link_references = df_link_references.drop_duplicates(subset=["link_key"])
     df_ipd_references = df_ipd_references.drop_duplicates(subset=["ipd_key"])
 
+    # outcomeMeasuresModule
+    df_outcome_measure_denom_units = df_outcome_measure_denom_units.drop_duplicates(
+        subset=["denom_unit_key"]
+    )
+
+    # participantFlowModule
+    df_withdrawal_types = df_withdrawal_types.drop_duplicates(
+        subset=["withdrawal_type_key"]
+    )
+
     df_conditions_mesh = df_conditions_mesh.drop_duplicates(subset=["mesh_key"])
     df_study_conditions_mesh = df_study_conditions_mesh.drop_duplicates(
         subset=["mesh_key", "study_key"]
@@ -609,9 +623,6 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
             subset=["branch_key", "study_key"]
         )
     )
-    df_outcome_measure_denom_units = df_outcome_measure_denom_units.drop_duplicates(
-        subset=["denom_unit_key"]
-    )
 
     return {
         "studies": df_studies,
@@ -652,6 +663,7 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
         "flow_periods": df_flow_periods,
         "flow_period_milestones": df_flow_period_milestones,
         "flow_period_milestone_achievements": df_flow_period_milestone_achievements,
+        "withdrawal_types": df_withdrawal_types,
         "flow_period_withdrawals": df_flow_period_withdrawals,
         "flow_period_withdrawal_reasons": df_flow_period_withdrawal_reasons,
         "adverse_events": df_adverse_events,
