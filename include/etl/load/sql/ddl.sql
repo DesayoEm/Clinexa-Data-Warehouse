@@ -109,6 +109,19 @@ CREATE TYPE Status AS ENUM(
     'UNKNOWN'
 );
 
+CREATE TYPE RecruitmentStatus AS ENUM(
+    'ACTIVE_NOT_RECRUITING',
+    'COMPLETED',
+    'ENROLLING_BY_INVITATION',
+    'NOT_YET_RECRUITING',
+    'RECRUITING',
+    'SUSPENDED',
+    'TERMINATED',
+    'WITHDRAWN',
+    'AVAILABLE'
+);
+
+
 CREATE TYPE DateType AS ENUM(
     'ACTUAL',
     'ESTIMATED'
@@ -265,11 +278,19 @@ CREATE TYPE BrowseLeafRelevance AS ENUM(
     'HIGH'
 );
 
+
+CREATE TYPE ContactRole AS ENUM(
+    'STUDY_CHAIR',
+    'STUDY_DIRECTOR',
+    'PRINCIPAL_INVESTIGATOR',
+    'SUB_INVESTIGATOR',
+    'CONTACT'
+);
 --- fixed character lengths are created using the registry docs as as a guide
 
 
 
--- STUDIES
+-- STUDIES (parent table - no FKs)
 CREATE TABLE IF NOT EXISTS staging.studies(
     -- Primary Key
     study_key CHAR(16) PRIMARY KEY,
@@ -386,18 +407,16 @@ CREATE TABLE IF NOT EXISTS staging.studies(
 );
 
 -- STUDIES INDEXES
-
 CREATE INDEX idx_studies_overall_status ON staging.studies(overall_status);
 CREATE INDEX idx_studies_study_type ON staging.studies(study_type);
 CREATE INDEX idx_studies_last_updated ON staging.studies(last_updated);
-CREATE INDEX idx_studies_loaded_at ON staging.studies(loaded_at);
-CREATE INDEX idx_studies_execution_date ON staging.studies(execution_date);
+CREATE INDEX idx_studies_execution_date ON staging.studies(dag_execution_date);
 
 
 -- Secondary IDs
 CREATE TABLE staging.secondary_ids (
     secondary_id_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     id VARCHAR(30),
     type SecondaryIdType,
     domain VARCHAR(120),
@@ -411,15 +430,15 @@ CREATE TABLE staging.secondary_ids (
 -- NCT Aliases
 CREATE TABLE staging.nct_aliases (
     id_alias_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     id_alias VARCHAR(15) NOT NULL,
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Lead Sponsor
+-- Lead Sponsor (dimension table - no FKs needed)
 CREATE TABLE staging.sponsors (
     sponsor_key CHAR(16) PRIMARY KEY,
     name TEXT,
@@ -430,10 +449,10 @@ CREATE TABLE staging.sponsors (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Sponsor
+-- Study-Sponsor (bridge table)
 CREATE TABLE staging.study_sponsors (
-    study_key CHAR(16) NOT NULL,
-    sponsor_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    sponsor_key CHAR(16) NOT NULL REFERENCES staging.sponsors(sponsor_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -441,7 +460,7 @@ CREATE TABLE staging.study_sponsors (
     PRIMARY KEY (study_key, sponsor_key)
 );
 
--- Collaborator
+-- Collaborator (dimension table - no FKs needed)
 CREATE TABLE staging.collaborators (
     collaborator_key CHAR(16) PRIMARY KEY,
     name VARCHAR(160),
@@ -452,10 +471,10 @@ CREATE TABLE staging.collaborators (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Collaborator
+-- Study-Collaborator (bridge table)
 CREATE TABLE staging.study_collaborators (
-    study_key CHAR(16) NOT NULL,
-    collaborator_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    collaborator_key CHAR(16) NOT NULL REFERENCES staging.collaborators(collaborator_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -463,7 +482,7 @@ CREATE TABLE staging.study_collaborators (
     PRIMARY KEY (study_key, collaborator_key)
 );
 
--- ConditionS
+-- Conditions (dimension table - no FKs needed)
 CREATE TABLE staging.conditions (
     condition_key CHAR(16) PRIMARY KEY,
     condition_name VARCHAR(200),
@@ -473,10 +492,10 @@ CREATE TABLE staging.conditions (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Condition
+-- Study-Condition (bridge table)
 CREATE TABLE staging.study_conditions (
-    study_key CHAR(16) NOT NULL,
-    condition_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    condition_key CHAR(16) NOT NULL REFERENCES staging.conditions(condition_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -484,7 +503,7 @@ CREATE TABLE staging.study_conditions (
     PRIMARY KEY (study_key, condition_key)
 );
 
--- Keywords
+-- Keywords (dimension table - no FKs needed)
 CREATE TABLE staging.keywords (
     keyword_key CHAR(16) PRIMARY KEY,
     keyword_name VARCHAR(200),
@@ -494,10 +513,10 @@ CREATE TABLE staging.keywords (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Keyword
+-- Study-Keyword (bridge table)
 CREATE TABLE staging.study_keywords (
-    study_key CHAR(16) NOT NULL,
-    keyword_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    keyword_key CHAR(16) NOT NULL REFERENCES staging.keywords(keyword_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -508,7 +527,7 @@ CREATE TABLE staging.study_keywords (
 -- Arm Groups
 CREATE TABLE staging.arm_groups (
     arm_group_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     arm_label VARCHAR(100),
     arm_description VARCHAR(999),
     arm_type ArmGroupType,
@@ -518,20 +537,7 @@ CREATE TABLE staging.arm_groups (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Arm-Intervention
-CREATE TABLE staging.arm_interventions (
-    study_key CHAR(16) NOT NULL,
-    arm_group_key CHAR(16) NOT NULL,
-    arm_intervention_key CHAR(16) NOT NULL,
-    arm_intervention_name VARCHAR(200),
-    dag_execution_date DATE,
-    dag_id VARCHAR(100),
-    dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (study_key, arm_group_key, arm_intervention_key)
-);
-
--- Interventions
+-- Interventions (dimension table - no FKs needed)
 CREATE TABLE staging.interventions (
     intervention_key CHAR(16) PRIMARY KEY,
     intervention_name VARCHAR(200),
@@ -542,10 +548,23 @@ CREATE TABLE staging.interventions (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Intervention
+-- Arm-Intervention (bridge table linking arms to intervention names)
+CREATE TABLE staging.arm_interventions (
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    arm_group_key CHAR(16) NOT NULL REFERENCES staging.arm_groups(arm_group_key),
+    arm_intervention_key CHAR(16) NOT NULL REFERENCES staging.interventions(intervention_key),
+    arm_intervention_name VARCHAR(200),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (study_key, arm_group_key, arm_intervention_key)
+);
+
+-- Study-Intervention (bridge table with study-specific attributes)
 CREATE TABLE staging.study_interventions (
-    study_key CHAR(16) NOT NULL,
-    intervention_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    intervention_key CHAR(16) NOT NULL REFERENCES staging.interventions(intervention_key),
     description VARCHAR(1000), --study specific description
     is_primary_name BOOLEAN,
     dag_execution_date DATE,
@@ -555,7 +574,7 @@ CREATE TABLE staging.study_interventions (
     PRIMARY KEY (study_key, intervention_key)
 );
 
--- Other Intervention Names
+-- Other Intervention Names (dimension table for aliases)
 CREATE TABLE staging.other_intervention_names (
     intervention_key CHAR(16) PRIMARY KEY,
     intervention_name VARCHAR(200),
@@ -566,10 +585,10 @@ CREATE TABLE staging.other_intervention_names (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Other Intervention Names
+-- Study-Other Intervention Names (bridge table)
 CREATE TABLE staging.study_intervention_aliases (
-    study_key CHAR(16) NOT NULL,
-    intervention_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    intervention_key CHAR(16) NOT NULL REFERENCES staging.other_intervention_names(intervention_key),
     description VARCHAR(1000),
     is_primary_name BOOLEAN,
     dag_execution_date DATE,
@@ -582,7 +601,7 @@ CREATE TABLE staging.study_intervention_aliases (
 -- Primary Outcomes
 CREATE TABLE staging.primary_outcomes (
     outcome_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     measure VARCHAR(254),
     description VARCHAR(999),
     time_frame VARCHAR(254),
@@ -595,7 +614,7 @@ CREATE TABLE staging.primary_outcomes (
 -- Secondary Outcomes
 CREATE TABLE staging.secondary_outcomes (
     outcome_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     measure VARCHAR(254),
     description VARCHAR(999),
     time_frame VARCHAR(254),
@@ -608,7 +627,7 @@ CREATE TABLE staging.secondary_outcomes (
 -- Other Outcomes
 CREATE TABLE staging.other_outcomes (
     outcome_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     measure VARCHAR(254),
     description VARCHAR(999),
     time_frame VARCHAR(254),
@@ -618,10 +637,70 @@ CREATE TABLE staging.other_outcomes (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Central Contacts
+CREATE TABLE staging.central_contacts (
+    contact_key CHAR(16) PRIMARY KEY,
+    name VARCHAR(100),
+    role ContactRole,
+    phone VARCHAR(30),
+    phone_ext VARCHAR(10),
+    email VARCHAR(200),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Study-Central Contacts
+CREATE TABLE staging.study_central_contacts (
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    contact_key CHAR(16) NOT NULL REFERENCES staging.central_contacts(contact_key),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (study_key, contact_key)
+);
+
+-- Locations
+CREATE TABLE staging.locations (
+    location_key CHAR(16) PRIMARY KEY,
+    facility VARCHAR(254),
+    city VARCHAR(100),
+    state VARCHAR(100),
+    country VARCHAR(100),
+    lat DECIMAL(9,6),
+    lon DECIMAL(9,6),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Study-Locations
+CREATE TABLE staging.study_locations (
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    location_key CHAR(16) NOT NULL REFERENCES staging.locations(location_key),
+    status RecruitmentStatus,
+    contacts JSONB,  -- contacts stored as JSON. only for use by patient matching API
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (study_key, location_key)
+);
+
+-- Indexes for patient matching queries
+CREATE INDEX idx_locations_country ON staging.locations(country);
+CREATE INDEX idx_locations_country_city ON staging.locations(country, city);
+CREATE INDEX idx_locations_geo ON staging.locations(lat, lon) WHERE lat IS NOT NULL AND lon IS NOT NULL;
+CREATE INDEX idx_study_locations_status ON staging.study_locations(status);
+
+
 -- Study References
 CREATE TABLE staging.study_references (
     ref_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     pmid VARCHAR(20),
     type ReferenceType,
     citation VARCHAR(2000),
@@ -634,7 +713,7 @@ CREATE TABLE staging.study_references (
 -- Link References
 CREATE TABLE staging.link_references (
     link_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     label VARCHAR(254),
     url VARCHAR(3999),
     dag_execution_date DATE,
@@ -646,7 +725,7 @@ CREATE TABLE staging.link_references (
 -- IPD References
 CREATE TABLE staging.ipd_references (
     ipd_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     id VARCHAR(30),
     type VARCHAR(100),
     url VARCHAR(3999),
@@ -660,7 +739,7 @@ CREATE TABLE staging.ipd_references (
 -- Outcome Measures
 CREATE TABLE staging.outcome_measures (
     outcome_measure_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     outcome_type OutcomeMeasureType,
     title VARCHAR(255),
     description VARCHAR(999),
@@ -683,8 +762,8 @@ CREATE TABLE staging.outcome_measures (
 -- Outcome Measure Groups
 CREATE TABLE staging.outcome_measure_groups (
     group_key CHAR(16) PRIMARY KEY,
-    outcome_measure_key CHAR(16) NOT NULL,
-    study_key CHAR(16) NOT NULL,
+    outcome_measure_key CHAR(16) NOT NULL REFERENCES staging.outcome_measures(outcome_measure_key),
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     group_id VARCHAR(20),
     title VARCHAR(100),
     description TEXT,
@@ -694,7 +773,7 @@ CREATE TABLE staging.outcome_measure_groups (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Outcome Measure Denominator Units
+-- Outcome Measure Denominator Units (dimension table)
 CREATE TABLE staging.outcome_measure_denom_units (
     denom_unit_key CHAR(16) PRIMARY KEY,
     denom_unit VARCHAR(100),
@@ -704,13 +783,13 @@ CREATE TABLE staging.outcome_measure_denom_units (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Outcome Measure Denominator Counts  (sample sizes per group/unit)
+-- Outcome Measure Denominator Counts (sample sizes per group/unit)
 CREATE TABLE staging.outcome_measure_denom_counts (
     denom_count_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
-    outcome_measure_key CHAR(16) NOT NULL,
-    denom_unit_key CHAR(16) NOT NULL,
-    group_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    outcome_measure_key CHAR(16) NOT NULL REFERENCES staging.outcome_measures(outcome_measure_key),
+    denom_unit_key CHAR(16) NOT NULL REFERENCES staging.outcome_measure_denom_units(denom_unit_key),
+    group_key CHAR(16) NOT NULL REFERENCES staging.outcome_measure_groups(group_key),
     group_id VARCHAR(20),
     denom_value VARCHAR(20), --INT but API returns a string representation
     dag_execution_date DATE,
@@ -721,9 +800,9 @@ CREATE TABLE staging.outcome_measure_denom_counts (
 
 -- Outcome Measure Groups Result (measurement values per group)
 CREATE TABLE staging.outcome_measure_groups_result (
-    group_key CHAR(16) NOT NULL,
-    outcome_measure_key CHAR(16) NOT NULL,
-    study_key CHAR(16) NOT NULL,
+    group_key CHAR(16) NOT NULL REFERENCES staging.outcome_measure_groups(group_key),
+    outcome_measure_key CHAR(16) NOT NULL REFERENCES staging.outcome_measures(outcome_measure_key),
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     group_id VARCHAR(20),
     value VARCHAR(500),
     lower_limit VARCHAR(20), --FLOAT but API returns a string representation
@@ -740,8 +819,8 @@ CREATE TABLE staging.outcome_measure_groups_result (
 -- Outcome Measure Analyses (statistical test results)
 CREATE TABLE staging.outcome_measure_analyses (
     analysis_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
-    outcome_measure_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    outcome_measure_key CHAR(16) NOT NULL REFERENCES staging.outcome_measures(outcome_measure_key),
     param_type VARCHAR(50),
     param_value VARCHAR(20), --FLOAT but API returns a string representation
     dispersion_type AnalysisDispersionType,
@@ -769,10 +848,10 @@ CREATE TABLE staging.outcome_measure_analyses (
 
 -- Outcome Measure Comparison Groups
 CREATE TABLE staging.outcome_measure_comparison_groups (
-    study_key CHAR(16) NOT NULL,
-    outcome_measure_key CHAR(16) NOT NULL,
-    analysis_key CHAR(16) NOT NULL,
-    group_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    outcome_measure_key CHAR(16) NOT NULL REFERENCES staging.outcome_measures(outcome_measure_key),
+    analysis_key CHAR(16) NOT NULL REFERENCES staging.outcome_measure_analyses(analysis_key),
+    group_key CHAR(16) NOT NULL REFERENCES staging.outcome_measure_groups(group_key),
     group_id VARCHAR(10),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -784,7 +863,7 @@ CREATE TABLE staging.outcome_measure_comparison_groups (
 -- Flow Groups
 CREATE TABLE staging.flow_groups (
     group_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     id VARCHAR(20),
     title VARCHAR(100),
     description TEXT,
@@ -797,7 +876,7 @@ CREATE TABLE staging.flow_groups (
 -- Flow Periods
 CREATE TABLE staging.flow_periods (
     period_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     title VARCHAR(40),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -808,8 +887,8 @@ CREATE TABLE staging.flow_periods (
 -- Flow Period Milestones
 CREATE TABLE staging.flow_period_milestones (
     milestone_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
-    period_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    period_key CHAR(16) NOT NULL REFERENCES staging.flow_periods(period_key),
     type VARCHAR(20),
     comment VARCHAR(500),
     dag_execution_date DATE,
@@ -820,10 +899,10 @@ CREATE TABLE staging.flow_period_milestones (
 
 -- Flow Period Milestone Achievements
 CREATE TABLE staging.flow_period_milestone_achievements (
-    study_key CHAR(16) NOT NULL,
-    period_key CHAR(16) NOT NULL,
-    milestone_key CHAR(16) NOT NULL,
-    group_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    period_key CHAR(16) NOT NULL REFERENCES staging.flow_periods(period_key),
+    milestone_key CHAR(16) NOT NULL REFERENCES staging.flow_period_milestones(milestone_key),
+    group_key CHAR(16) NOT NULL REFERENCES staging.flow_groups(group_key),
     group_id VARCHAR(10),
     comment VARCHAR(500),
     num_subjects VARCHAR(20),
@@ -835,7 +914,7 @@ CREATE TABLE staging.flow_period_milestone_achievements (
     PRIMARY KEY (study_key, period_key, milestone_key, group_key)
 );
 
--- Withdrawal types
+-- Withdrawal types (dimension table)
 CREATE TABLE staging.withdrawal_types (
     withdrawal_type_key CHAR(16) PRIMARY KEY,
     type VARCHAR(20),
@@ -848,9 +927,9 @@ CREATE TABLE staging.withdrawal_types (
 
 -- Flow Period Withdrawals
 CREATE TABLE staging.flow_period_withdrawals (
-    study_key CHAR(16) NOT NULL,
-    period_key CHAR(16) NOT NULL,
-    withdrawal_type_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    period_key CHAR(16) NOT NULL REFERENCES staging.flow_periods(period_key),
+    withdrawal_type_key CHAR(16) NOT NULL REFERENCES staging.withdrawal_types(withdrawal_type_key),
     comment TEXT,
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -862,10 +941,10 @@ CREATE TABLE staging.flow_period_withdrawals (
 -- Flow Period Withdrawal Reasons
 CREATE TABLE staging.flow_period_withdrawal_reasons (
     reason_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
-    period_key CHAR(16) NOT NULL,
-    withdrawal_type_key CHAR(16) NOT NULL,
-    group_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    period_key CHAR(16) NOT NULL REFERENCES staging.flow_periods(period_key),
+    withdrawal_type_key CHAR(16) NOT NULL REFERENCES staging.withdrawal_types(withdrawal_type_key),
+    group_key CHAR(16) NOT NULL REFERENCES staging.flow_groups(group_key),
     group_id VARCHAR(20),
     reason TEXT,
     num_subjects VARCHAR(20), --INT but API returns a string representation
@@ -878,7 +957,7 @@ CREATE TABLE staging.flow_period_withdrawal_reasons (
 -- Adverse Events
 CREATE TABLE staging.adverse_events (
     adverse_event_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     description VARCHAR(500),
     frequency_threshold VARCHAR(20), --INT/FLOAT but API returns a string representation
     time_frame VARCHAR(500),
@@ -892,8 +971,8 @@ CREATE TABLE staging.adverse_events (
 -- Event Groups
 CREATE TABLE staging.event_groups (
     event_group_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
-    adverse_event_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    adverse_event_key CHAR(16) NOT NULL REFERENCES staging.adverse_events(adverse_event_key),
     group_id VARCHAR(20),
     title VARCHAR(100),
     description TEXT,
@@ -912,8 +991,8 @@ CREATE TABLE staging.event_groups (
 -- Serious Events
 CREATE TABLE staging.serious_events (
     serious_event_key CHAR(16) PRIMARY KEY,
-    adverse_event_key CHAR(16) NOT NULL,
-    study_key CHAR(16) NOT NULL,
+    adverse_event_key CHAR(16) NOT NULL REFERENCES staging.adverse_events(adverse_event_key),
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     term TEXT,
     organ_system VARCHAR(200),
     source_vocab VARCHAR(20),
@@ -928,10 +1007,10 @@ CREATE TABLE staging.serious_events (
 -- Serious Event Stats
 CREATE TABLE staging.serious_event_stats (
     event_stat_key CHAR(16) PRIMARY KEY,
-    adverse_event_key CHAR(16) NOT NULL,
-    serious_event_key CHAR(16) NOT NULL,
-    study_key CHAR(16) NOT NULL,
-    group_key CHAR(16) NOT NULL,
+    adverse_event_key CHAR(16) NOT NULL REFERENCES staging.adverse_events(adverse_event_key),
+    serious_event_key CHAR(16) NOT NULL REFERENCES staging.serious_events(serious_event_key),
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    group_key CHAR(16) NOT NULL REFERENCES staging.event_groups(event_group_key),
     group_id VARCHAR(20),
     num_events INTEGER,
     num_affected INTEGER,
@@ -945,14 +1024,13 @@ CREATE TABLE staging.serious_event_stats (
 -- Other Events
 CREATE TABLE staging.other_events (
     other_event_key CHAR(16) PRIMARY KEY,
-    adverse_event_key CHAR(16) NOT NULL,
-    study_key CHAR(16) NOT NULL,
+    adverse_event_key CHAR(16) NOT NULL REFERENCES staging.adverse_events(adverse_event_key),
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     term TEXT,
     organ_system VARCHAR(200),
     source_vocab VARCHAR(20),
     assessment_type EventAssessment,
     notes VARCHAR(250),
-    notes TEXT,
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -962,10 +1040,10 @@ CREATE TABLE staging.other_events (
 -- Other Event Stats
 CREATE TABLE staging.other_event_stats (
     event_stat_key CHAR(16) PRIMARY KEY,
-    other_event_key CHAR(16) NOT NULL,
-    adverse_event_key CHAR(16) NOT NULL,
-    study_key CHAR(16) NOT NULL,
-    group_key CHAR(16) NOT NULL,
+    other_event_key CHAR(16) NOT NULL REFERENCES staging.other_events(other_event_key),
+    adverse_event_key CHAR(16) NOT NULL REFERENCES staging.adverse_events(adverse_event_key),
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    group_key CHAR(16) NOT NULL REFERENCES staging.event_groups(event_group_key),
     group_id VARCHAR(20),
     num_events INTEGER,
     num_affected INTEGER,
@@ -979,7 +1057,7 @@ CREATE TABLE staging.other_event_stats (
 -- FDAAA 801 Violations
 CREATE TABLE staging.violations (
     violation_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL,
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     violation_type ViolationEventType,
     issued_date DATE,
     description TEXT,
@@ -992,7 +1070,7 @@ CREATE TABLE staging.violations (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Conditions MeSH
+-- Conditions MeSH (dimension table)
 CREATE TABLE staging.conditions_mesh (
     mesh_key CHAR(16) PRIMARY KEY,
     mesh_id VARCHAR(10),
@@ -1003,10 +1081,10 @@ CREATE TABLE staging.conditions_mesh (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Conditions MESH
+-- Study-Conditions MESH (bridge table)
 CREATE TABLE staging.study_conditions_mesh (
-    mesh_key CHAR(16) NOT NULL,
-    study_key CHAR(16) NOT NULL,
+    mesh_key CHAR(16) NOT NULL REFERENCES staging.conditions_mesh(mesh_key),
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -1025,10 +1103,10 @@ CREATE TABLE staging.conditions_mesh_ancestors (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Conditions MeSH Ancestors
+-- Study-Conditions MeSH Ancestors (bridge table)
 CREATE TABLE staging.study_conditions_mesh_ancestors (
-    ancestor_key CHAR(16) NOT NULL,
-    study_key CHAR(16) NOT NULL,
+    ancestor_key CHAR(16) NOT NULL REFERENCES staging.conditions_mesh_ancestors(ancestor_key),
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -1036,7 +1114,7 @@ CREATE TABLE staging.study_conditions_mesh_ancestors (
     PRIMARY KEY (ancestor_key, study_key)
 );
 
--- Conditions Browse Leaves
+-- Conditions Browse Leaves (dimension table)
 CREATE TABLE staging.conditions_browse_leaves (
     leaf_key CHAR(16) PRIMARY KEY,
     leaf_id VARCHAR(10),
@@ -1049,10 +1127,10 @@ CREATE TABLE staging.conditions_browse_leaves (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Conditions Browse
+-- Study-Conditions Browse (bridge table)
 CREATE TABLE staging.study_conditions_browse_leaves (
-    leaf_key CHAR(16) NOT NULL,
-    study_key CHAR(16) NOT NULL,
+    leaf_key CHAR(16) NOT NULL REFERENCES staging.conditions_browse_leaves(leaf_key),
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -1060,7 +1138,7 @@ CREATE TABLE staging.study_conditions_browse_leaves (
     PRIMARY KEY (leaf_key, study_key)
 );
 
--- Conditions Browse Branches
+-- Conditions Browse Branches (dimension table)
 CREATE TABLE staging.conditions_browse_branches (
     branch_key CHAR(16) PRIMARY KEY,
     abbrev TEXT,
@@ -1071,10 +1149,10 @@ CREATE TABLE staging.conditions_browse_branches (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Conditions Browse Branches
+-- Study-Conditions Browse Branches (bridge table)
 CREATE TABLE staging.study_conditions_browse_branches (
-    branch_key CHAR(16) NOT NULL,
-    study_key CHAR(16) NOT NULL,
+    branch_key CHAR(16) NOT NULL REFERENCES staging.conditions_browse_branches(branch_key),
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -1082,7 +1160,7 @@ CREATE TABLE staging.study_conditions_browse_branches (
     PRIMARY KEY (branch_key, study_key)
 );
 
--- interventions MeSH
+-- Interventions MeSH (dimension table)
 CREATE TABLE staging.interventions_mesh (
     mesh_key CHAR(16) PRIMARY KEY,
     mesh_id VARCHAR(10),
@@ -1093,10 +1171,10 @@ CREATE TABLE staging.interventions_mesh (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-interventions MESH
+-- Study-Interventions MESH (bridge table)
 CREATE TABLE staging.study_interventions_mesh (
-    mesh_key CHAR(16) NOT NULL,
-    study_key CHAR(16) NOT NULL,
+    mesh_key CHAR(16) NOT NULL REFERENCES staging.interventions_mesh(mesh_key),
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -1104,7 +1182,7 @@ CREATE TABLE staging.study_interventions_mesh (
     PRIMARY KEY (mesh_key, study_key)
 );
 
--- interventions MeSH Ancestors dimension table (parent terms in MeSH tree)
+-- Interventions MeSH Ancestors dimension table (parent terms in MeSH tree)
 CREATE TABLE staging.interventions_mesh_ancestors (
     ancestor_key CHAR(16) PRIMARY KEY,
     ancestor_id VARCHAR(10),
@@ -1115,10 +1193,10 @@ CREATE TABLE staging.interventions_mesh_ancestors (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-interventions MeSH Ancestors
+-- Study-Interventions MeSH Ancestors (bridge table)
 CREATE TABLE staging.study_interventions_mesh_ancestors (
-    ancestor_key CHAR(16) NOT NULL,
-    study_key CHAR(16) NOT NULL,
+    ancestor_key CHAR(16) NOT NULL REFERENCES staging.interventions_mesh_ancestors(ancestor_key),
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -1126,7 +1204,7 @@ CREATE TABLE staging.study_interventions_mesh_ancestors (
     PRIMARY KEY (ancestor_key, study_key)
 );
 
--- interventions Browse Leaves
+-- Interventions Browse Leaves (dimension table)
 CREATE TABLE staging.interventions_browse_leaves (
     leaf_key CHAR(16) PRIMARY KEY,
     leaf_id VARCHAR(10),
@@ -1139,10 +1217,10 @@ CREATE TABLE staging.interventions_browse_leaves (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-interventions Browse
+-- Study-Interventions Browse (bridge table)
 CREATE TABLE staging.study_interventions_browse_leaves (
-    leaf_key CHAR(16) NOT NULL,
-    study_key CHAR(16) NOT NULL,
+    leaf_key CHAR(16) NOT NULL REFERENCES staging.interventions_browse_leaves(leaf_key),
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -1150,7 +1228,7 @@ CREATE TABLE staging.study_interventions_browse_leaves (
     PRIMARY KEY (leaf_key, study_key)
 );
 
--- interventions Browse Branches
+-- Interventions Browse Branches (dimension table)
 CREATE TABLE staging.interventions_browse_branches (
     branch_key CHAR(16) PRIMARY KEY,
     abbrev TEXT,
@@ -1161,26 +1239,13 @@ CREATE TABLE staging.interventions_browse_branches (
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-interventions Browse Branches
+-- Study-Interventions Browse Branches (bridge table)
 CREATE TABLE staging.study_interventions_browse_branches (
-    branch_key CHAR(16) NOT NULL,
-    study_key CHAR(16) NOT NULL,
+    branch_key CHAR(16) NOT NULL REFERENCES staging.interventions_browse_branches(branch_key),
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
     loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (branch_key, study_key)
 );
-
-
-
-
-
-
-
-
-
-
-
-
-

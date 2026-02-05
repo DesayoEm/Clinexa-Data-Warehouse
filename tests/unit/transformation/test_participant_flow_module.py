@@ -40,10 +40,10 @@ def test_milestones_and_achievements_extracted(study_key, results_study_data):
 def test_withdrawals_extracted(study_key, results_study_data):
     """Test withdrawals and reasons are properly extracted."""
 
-    *_, withdrawals, withdrawal_reasons = transform_participant_flow_module(
-        study_key, results_study_data
+    *_, withdrawal_types, flow_period_withdrawals, flow_period_withdrawal_reasons = (
+        transform_participant_flow_module(study_key, results_study_data)
     )
 
-    assert len(withdrawals) == 1
-    assert withdrawals[0]["type"] == "Withdrawal"
-    assert len(withdrawal_reasons) == 1
+    assert len(flow_period_withdrawals) == 1
+    assert withdrawal_types[0]["type"] == "Withdrawal"
+    assert len(flow_period_withdrawal_reasons) == 1

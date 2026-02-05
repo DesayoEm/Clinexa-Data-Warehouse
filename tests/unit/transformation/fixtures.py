@@ -407,12 +407,7 @@ def browse_study_data():
                 },
             ],
             "derivedSection.conditionBrowseModule.browseBranches": [
-                {
-                    "id": "BC18",
-                    "name": "Nutritional and Metabolic Diseases",
-                    "asFound": None,
-                    "relevance": "HIGH",
-                },
+                {"abbrev": "BC18", "name": "Nutritional and Metabolic Diseases"},
             ],
             # Interventions Browse Module
             "derivedSection.interventionBrowseModule.meshes": [
@@ -431,11 +426,9 @@ def browse_study_data():
             ],
             "derivedSection.interventionBrowseModule.browseBranches": [
                 {
-                    "id": "BC19",
+                    "abbrev": "BC19",
                     "name": "Antidiabetic Agents",
-                    "asFound": None,
-                    "relevance": "HIGH",
-                },
+                }
             ],
         }
     )
