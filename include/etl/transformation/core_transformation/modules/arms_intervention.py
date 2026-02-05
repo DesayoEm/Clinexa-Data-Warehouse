@@ -163,7 +163,9 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
                 {
                     "study_key": study_key,
                     "intervention_key": intervention_key,
-                    "description": intervention.get("description"),
+                    "description": intervention.get(
+                        "description"
+                    ),  # study specific description
                     "is_primary_name": True,
                 }
             )

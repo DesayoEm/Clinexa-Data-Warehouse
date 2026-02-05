@@ -129,16 +129,15 @@ def transform_conditions_browse_module(study_key: str, study_data: pd.Series) ->
         and len(mesh_browse_branches) > 0
     ):
         for browse_branch in mesh_browse_branches:
-            branch_id = browse_branch.get("id")
-            branch_key = generate_key(branch_id)
+            branch_abbrev = browse_branch.get("abbrev")
+            branch_name = browse_branch.get("name")
+            branch_key = generate_key(branch_abbrev, branch_name)
 
             conditions_browse_branches.append(
                 {
                     "branch_key": branch_key,
-                    "branch_id": branch_id,
-                    "name": browse_branch.get("name").lower(),
-                    "as_found": browse_branch.get("asFound"),
-                    "relevance": browse_branch.get("relevance"),
+                    "abbrev": branch_abbrev.lower(),
+                    "name": branch_name.lower(),
                 }
             )
 

@@ -60,9 +60,10 @@ def transform_contacts_location_module(study_key: str, study_data: pd.Series) ->
             name = central_contact.get("name")
             role = central_contact.get("role")
             phone = central_contact.get("phone")
+            phone_ext = central_contact.get("phoneExt")
             email = central_contact.get("email")
 
-            central_contact_key = generate_key(name, role, phone, email)
+            central_contact_key = generate_key(name, role, phone, phone_ext, email)
 
             central_contacts.append(
                 {
@@ -70,6 +71,7 @@ def transform_contacts_location_module(study_key: str, study_data: pd.Series) ->
                     "name": name,
                     "role": role,
                     "phone": phone,
+                    "phone_ext": phone_ext,
                     "email": email,
                 }
             )
