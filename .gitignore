@@ -23,3 +23,7 @@ bkjt.py
 priv/
 .pytest_cache
 *.pytest_cache
+target/
+dbt_packages/
+logs/
+

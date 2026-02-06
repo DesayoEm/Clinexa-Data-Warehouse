@@ -1,4 +1,5 @@
 CREATE SCHEMA staging;
+CREATE SCHEMA dev;
 CREATE SCHEMA patient_matching;
 CREATE SCHEMA landscape;
 CREATE SCHEMA r_and_d;

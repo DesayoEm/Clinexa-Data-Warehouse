@@ -225,7 +225,7 @@ class Transformer:
                 f"{config.STAGING_DEST}/"
                 f"{self.execution_date}/"
                 f"{table_name}/"
-                f"part-{index:05d}.parquet"
+                f"part-{index:03d}.parquet"
             )
 
             buffer = io.BytesIO()
