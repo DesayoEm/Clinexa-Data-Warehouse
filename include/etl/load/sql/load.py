@@ -9,8 +9,6 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from config.env_config import config
 
 
-
-
 class Loader:
     def __init__(self, connection):
         pass
