@@ -165,11 +165,11 @@ class Extractor:
              - Rate limit check is ran before each request to prevent API throttling
         """
 
-        while True:
-            # while self.last_saved_page < 10:  # test volume
+        # while True:
+        while self.last_saved_page < 2:  # test vol
             current_page = self.last_saved_page + 1
-            # current page is used for logging and error reporting within the namespace of this function, and
-            # not for tracking progress. progress is tracked by self.last_saved_page
+            # current page is used for logging and error reporting within the context of this function, and
+            # not for checkpointing/tracking progress. progress is tracked by self.last_saved_page
             next_page_token = None
 
             try:
@@ -334,7 +334,7 @@ class Extractor:
         buffer.seek(0)
 
         bucket = config.CLINEXA_BUCKET
-        key = f"{self.destination_key}/{page_number}.parquet"
+        key = f"{self.destination_key}/page-{page_number:04d}.parquet"
 
         self.s3_hook.load_bytes(
             bytes_data=buffer.getvalue(), key=key, bucket_name=bucket, replace=True

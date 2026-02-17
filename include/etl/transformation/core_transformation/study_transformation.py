@@ -1,8 +1,8 @@
 from typing import List, Dict
 from collections import defaultdict
+from datetime import date
 import logging
 import io
-import tempfile
 
 import pandas as pd
 from config.env_config import config
@@ -84,6 +84,7 @@ def process_study_file(s3_key: str) -> List[StudyResult]:
         s3_key: Path to parquet file containing raw API response data
                   with a 'studies' column of nested JSON.
 
+
     Returns:
         List of StudyResult objects, one per successfully processed study.
 
@@ -103,6 +104,9 @@ def process_study_file(s3_key: str) -> List[StudyResult]:
 
     for idx, study in df_studies.iterrows():
         nct_index = SCALAR_FIELDS["nct_id"]
+        last_updated_index = SCALAR_FIELDS["last_updated"]
+
+        last_updated = study[last_updated_index]
         nct_id = study.get(nct_index)
 
         if not nct_id:

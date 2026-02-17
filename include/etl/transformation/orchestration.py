@@ -176,7 +176,7 @@ class Transformer:
         last_processed_index = self.load_checkpoint()["last_processed_index"]
 
         start_index = last_processed_index + 1 if last_processed_index else 0
-        for index, s3_key in enumerate(files, start=start_index):
+        for index, s3_key in enumerate(files[start_index:], start=start_index):
 
             try:
                 batch_result = process_study_file(s3_key)
@@ -225,7 +225,7 @@ class Transformer:
                 f"{config.STAGING_DEST}/"
                 f"{self.execution_date}/"
                 f"{table_name}/"
-                f"part-{index:03d}.parquet"
+                f"page-{index + 1:04d}.parquet"  # increased index by 1 to match actual page numbers
             )
 
             buffer = io.BytesIO()

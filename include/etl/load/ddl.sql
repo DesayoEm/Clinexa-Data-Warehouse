@@ -1,8 +1,7 @@
 CREATE SCHEMA staging;
 CREATE SCHEMA dev;
-CREATE SCHEMA patient_matching;
-CREATE SCHEMA landscape;
-CREATE SCHEMA r_and_d;
+CREATE SCHEMA landscape_patient_matching;
+CREATE SCHEMA outcome_analysis;
 
 -- ENUMS
 CREATE TYPE ResponsiblePartyType AS ENUM(
@@ -290,7 +289,6 @@ CREATE TYPE ContactRole AS ENUM(
 --- fixed character lengths are created using the registry docs as as a guide
 
 
-
 -- STUDIES (parent table - no FKs)
 CREATE TABLE IF NOT EXISTS staging.studies(
     -- Primary Key
@@ -307,7 +305,7 @@ CREATE TABLE IF NOT EXISTS staging.studies(
     brief_summary VARCHAR(5000),
     detailed_desc VARCHAR(32000),
 
-    -- Administrative
+    -- Admin
     responsible_party_type ResponsiblePartyType,
 
     -- Study Classification
@@ -316,7 +314,7 @@ CREATE TABLE IF NOT EXISTS staging.studies(
 
     -- Enrollment
     enrollment_type EnrollmentType,
-    enrollment_count FLOAT, -- Ideally should be an int but API returns a float
+    enrollment_count FLOAT, -- Ideally int but API returns a float
 
     -- Design - Interventional
     design_allocation DesignAllocation,
@@ -404,7 +402,8 @@ CREATE TABLE IF NOT EXISTS staging.studies(
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- STUDIES INDEXES
@@ -425,7 +424,8 @@ CREATE TABLE staging.secondary_ids (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- NCT Aliases
@@ -436,7 +436,8 @@ CREATE TABLE staging.nct_aliases (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Lead Sponsor (dimension table - no FKs needed)
@@ -447,17 +448,19 @@ CREATE TABLE staging.sponsors (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Sponsor (bridge table)
+-- Study-Sponsor 
 CREATE TABLE staging.study_sponsors (
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     sponsor_key CHAR(16) NOT NULL REFERENCES staging.sponsors(sponsor_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (study_key, sponsor_key)
 );
 
@@ -469,17 +472,19 @@ CREATE TABLE staging.collaborators (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Collaborator (bridge table)
+-- Study-Collaborator 
 CREATE TABLE staging.study_collaborators (
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     collaborator_key CHAR(16) NOT NULL REFERENCES staging.collaborators(collaborator_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (study_key, collaborator_key)
 );
 
@@ -490,17 +495,19 @@ CREATE TABLE staging.conditions (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Condition (bridge table)
+-- Study-Condition 
 CREATE TABLE staging.study_conditions (
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     condition_key CHAR(16) NOT NULL REFERENCES staging.conditions(condition_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (study_key, condition_key)
 );
 
@@ -511,17 +518,19 @@ CREATE TABLE staging.keywords (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Keyword (bridge table)
+-- Study-Keyword 
 CREATE TABLE staging.study_keywords (
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     keyword_key CHAR(16) NOT NULL REFERENCES staging.keywords(keyword_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (study_key, keyword_key)
 );
 
@@ -535,7 +544,8 @@ CREATE TABLE staging.arm_groups (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Interventions (dimension table - no FKs needed)
@@ -546,7 +556,8 @@ CREATE TABLE staging.interventions (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Arm-Intervention (bridge table linking arms to intervention names)
@@ -558,7 +569,8 @@ CREATE TABLE staging.arm_interventions (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (study_key, arm_group_key, arm_intervention_key)
 );
 
@@ -571,7 +583,8 @@ CREATE TABLE staging.study_interventions (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (study_key, intervention_key)
 );
 
@@ -583,10 +596,11 @@ CREATE TABLE staging.other_intervention_names (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Other Intervention Names (bridge table)
+-- Study-Other Intervention Names 
 CREATE TABLE staging.study_intervention_aliases (
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     intervention_key CHAR(16) NOT NULL REFERENCES staging.other_intervention_names(intervention_key),
@@ -595,7 +609,8 @@ CREATE TABLE staging.study_intervention_aliases (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (study_key, intervention_key)
 );
 
@@ -609,7 +624,8 @@ CREATE TABLE staging.primary_outcomes (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Secondary Outcomes
@@ -622,7 +638,8 @@ CREATE TABLE staging.secondary_outcomes (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Other Outcomes
@@ -635,7 +652,8 @@ CREATE TABLE staging.other_outcomes (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Central Contacts
@@ -649,7 +667,8 @@ CREATE TABLE staging.central_contacts (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Study-Central Contacts
@@ -659,7 +678,8 @@ CREATE TABLE staging.study_central_contacts (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (study_key, contact_key)
 );
 
@@ -675,7 +695,8 @@ CREATE TABLE staging.locations (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Study-Locations
@@ -687,7 +708,8 @@ CREATE TABLE staging.study_locations (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (study_key, location_key)
 );
 
@@ -708,7 +730,8 @@ CREATE TABLE staging.study_references (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Link References
@@ -720,7 +743,8 @@ CREATE TABLE staging.link_references (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- IPD References
@@ -734,7 +758,8 @@ CREATE TABLE staging.ipd_references (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Outcome Measures
@@ -757,7 +782,8 @@ CREATE TABLE staging.outcome_measures (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Outcome Measure Groups
@@ -771,17 +797,19 @@ CREATE TABLE staging.outcome_measure_groups (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Outcome Measure Denominator Units (dimension table)
+-- Outcome Measure Denominator Units 
 CREATE TABLE staging.outcome_measure_denom_units (
     denom_unit_key CHAR(16) PRIMARY KEY,
     denom_unit VARCHAR(100),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Outcome Measure Denominator Counts (sample sizes per group/unit)
@@ -796,7 +824,8 @@ CREATE TABLE staging.outcome_measure_denom_counts (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Outcome Measure Groups Result (measurement values per group)
@@ -813,7 +842,8 @@ CREATE TABLE staging.outcome_measure_groups_result (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (group_key, outcome_measure_key, study_key)
 );
 
@@ -844,7 +874,8 @@ CREATE TABLE staging.outcome_measure_analyses (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Outcome Measure Comparison Groups
@@ -857,7 +888,8 @@ CREATE TABLE staging.outcome_measure_comparison_groups (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (study_key, outcome_measure_key, analysis_key, group_key)
 );
 
@@ -871,7 +903,8 @@ CREATE TABLE staging.flow_groups (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Flow Periods
@@ -882,7 +915,8 @@ CREATE TABLE staging.flow_periods (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Flow Period Milestones
@@ -895,7 +929,8 @@ CREATE TABLE staging.flow_period_milestones (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Flow Period Milestone Achievements
@@ -911,18 +946,20 @@ CREATE TABLE staging.flow_period_milestone_achievements (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (study_key, period_key, milestone_key, group_key)
 );
 
--- Withdrawal types (dimension table)
+-- Withdrawal types 
 CREATE TABLE staging.withdrawal_types (
     withdrawal_type_key CHAR(16) PRIMARY KEY,
     type VARCHAR(20),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 
@@ -935,7 +972,8 @@ CREATE TABLE staging.flow_period_withdrawals (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (study_key, period_key, withdrawal_type_key)
 );
 
@@ -952,7 +990,8 @@ CREATE TABLE staging.flow_period_withdrawal_reasons (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Adverse Events
@@ -966,7 +1005,8 @@ CREATE TABLE staging.adverse_events (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Event Groups
@@ -986,7 +1026,8 @@ CREATE TABLE staging.event_groups (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Serious Events
@@ -1002,7 +1043,8 @@ CREATE TABLE staging.serious_events (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Serious Event Stats
@@ -1019,7 +1061,8 @@ CREATE TABLE staging.serious_event_stats (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Other Events
@@ -1035,7 +1078,8 @@ CREATE TABLE staging.other_events (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Other Event Stats
@@ -1052,7 +1096,8 @@ CREATE TABLE staging.other_event_stats (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- FDAAA 801 Violations
@@ -1068,10 +1113,11 @@ CREATE TABLE staging.violations (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Conditions MeSH (dimension table)
+-- Conditions MeSH 
 CREATE TABLE staging.conditions_mesh (
     mesh_key CHAR(16) PRIMARY KEY,
     mesh_id VARCHAR(10),
@@ -1079,17 +1125,19 @@ CREATE TABLE staging.conditions_mesh (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Conditions MESH (bridge table)
+-- Study-Conditions MESH 
 CREATE TABLE staging.study_conditions_mesh (
     mesh_key CHAR(16) NOT NULL REFERENCES staging.conditions_mesh(mesh_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (mesh_key, study_key)
 );
 
@@ -1101,21 +1149,23 @@ CREATE TABLE staging.conditions_mesh_ancestors (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Conditions MeSH Ancestors (bridge table)
+-- Study-Conditions MeSH Ancestors 
 CREATE TABLE staging.study_conditions_mesh_ancestors (
     ancestor_key CHAR(16) NOT NULL REFERENCES staging.conditions_mesh_ancestors(ancestor_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (ancestor_key, study_key)
 );
 
--- Conditions Browse Leaves (dimension table)
+-- Conditions Browse Leaves 
 CREATE TABLE staging.conditions_browse_leaves (
     leaf_key CHAR(16) PRIMARY KEY,
     leaf_id VARCHAR(10),
@@ -1125,21 +1175,23 @@ CREATE TABLE staging.conditions_browse_leaves (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Conditions Browse (bridge table)
+-- Study-Conditions Browse 
 CREATE TABLE staging.study_conditions_browse_leaves (
     leaf_key CHAR(16) NOT NULL REFERENCES staging.conditions_browse_leaves(leaf_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (leaf_key, study_key)
 );
 
--- Conditions Browse Branches (dimension table)
+-- Conditions Browse Branches 
 CREATE TABLE staging.conditions_browse_branches (
     branch_key CHAR(16) PRIMARY KEY,
     abbrev TEXT,
@@ -1147,21 +1199,23 @@ CREATE TABLE staging.conditions_browse_branches (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Conditions Browse Branches (bridge table)
+-- Study-Conditions Browse Branches 
 CREATE TABLE staging.study_conditions_browse_branches (
     branch_key CHAR(16) NOT NULL REFERENCES staging.conditions_browse_branches(branch_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (branch_key, study_key)
 );
 
--- Interventions MeSH (dimension table)
+-- Interventions MeSH 
 CREATE TABLE staging.interventions_mesh (
     mesh_key CHAR(16) PRIMARY KEY,
     mesh_id VARCHAR(10),
@@ -1169,17 +1223,19 @@ CREATE TABLE staging.interventions_mesh (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Interventions MESH (bridge table)
+-- Study-Interventions MESH 
 CREATE TABLE staging.study_interventions_mesh (
     mesh_key CHAR(16) NOT NULL REFERENCES staging.interventions_mesh(mesh_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (mesh_key, study_key)
 );
 
@@ -1191,21 +1247,23 @@ CREATE TABLE staging.interventions_mesh_ancestors (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Interventions MeSH Ancestors (bridge table)
+-- Study-Interventions MeSH Ancestors 
 CREATE TABLE staging.study_interventions_mesh_ancestors (
     ancestor_key CHAR(16) NOT NULL REFERENCES staging.interventions_mesh_ancestors(ancestor_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (ancestor_key, study_key)
 );
 
--- Interventions Browse Leaves (dimension table)
+-- Interventions Browse Leaves 
 CREATE TABLE staging.interventions_browse_leaves (
     leaf_key CHAR(16) PRIMARY KEY,
     leaf_id VARCHAR(10),
@@ -1215,21 +1273,23 @@ CREATE TABLE staging.interventions_browse_leaves (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Interventions Browse (bridge table)
+-- Study-Interventions Browse 
 CREATE TABLE staging.study_interventions_browse_leaves (
     leaf_key CHAR(16) NOT NULL REFERENCES staging.interventions_browse_leaves(leaf_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (leaf_key, study_key)
 );
 
--- Interventions Browse Branches (dimension table)
+-- Interventions Browse Branches 
 CREATE TABLE staging.interventions_browse_branches (
     branch_key CHAR(16) PRIMARY KEY,
     abbrev TEXT,
@@ -1237,16 +1297,23 @@ CREATE TABLE staging.interventions_browse_branches (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Study-Interventions Browse Branches (bridge table)
+-- Study-Interventions Browse Branches 
 CREATE TABLE staging.study_interventions_browse_branches (
     branch_key CHAR(16) NOT NULL REFERENCES staging.interventions_browse_branches(branch_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    first_loaded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (branch_key, study_key)
 );
+
+
+
+---- Temp staging
+CREATE TEMP TABLE tmp_{table_name} (LIKE staging.{table_name} INCLUDING ALL)
