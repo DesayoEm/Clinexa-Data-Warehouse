@@ -138,7 +138,7 @@ class Loader:
                     audit_cols = {"first_loaded_at", "last_seen_at"}
                     cols = [c for c in df.columns if c not in audit_cols]
 
-                    # Write to CSV buffer
+
                     csv_buffer = StringIO()
                     df[cols].to_csv(csv_buffer, index=False, header=False)
                     csv_buffer.seek(0)

@@ -244,19 +244,13 @@ CREATE TYPE ContactRole AS ENUM(
     'SUB_INVESTIGATOR',
     'CONTACT'
 );
---- fixed character lengths are created using the registry docs as as a guide
+--- fixed character lengths are created using the registry docs as as a guide. TEXT for unreliable fields
 
 
--- STUDIES (parent table - no FKs)
 CREATE TABLE IF NOT EXISTS staging.studies(
-    -- Primary Key
     study_key CHAR(16) PRIMARY KEY,
-
-    -- Identifiers
     nct_id VARCHAR(15) NOT NULL UNIQUE,
     org_study_id VARCHAR(30),
-
-    -- Study Titles & Descriptions
     brief_title VARCHAR(300),
     official_title VARCHAR(600),
     acronym VARCHAR(14),
@@ -398,7 +392,7 @@ CREATE TABLE staging.nct_aliases (
     last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Lead Sponsor (dimension table - no FKs needed)
+-- Lead Sponsor 
 CREATE TABLE staging.sponsors (
     sponsor_key CHAR(16) PRIMARY KEY,
     name TEXT,
@@ -422,7 +416,7 @@ CREATE TABLE staging.study_sponsors (
     PRIMARY KEY (study_key, sponsor_key)
 );
 
--- Collaborator (dimension table - no FKs needed)
+-- Collaborator 
 CREATE TABLE staging.collaborators (
     collaborator_key CHAR(16) PRIMARY KEY,
     name VARCHAR(160),
@@ -446,7 +440,7 @@ CREATE TABLE staging.study_collaborators (
     PRIMARY KEY (study_key, collaborator_key)
 );
 
--- Conditions (dimension table - no FKs needed)
+-- Conditions
 CREATE TABLE staging.conditions (
     condition_key CHAR(16) PRIMARY KEY,
     condition_name TEXT,
@@ -469,7 +463,7 @@ CREATE TABLE staging.study_conditions (
     PRIMARY KEY (study_key, condition_key)
 );
 
--- Keywords (dimension table - no FKs needed)
+-- Keywords 
 CREATE TABLE staging.keywords (
     keyword_key CHAR(16) PRIMARY KEY,
     keyword_name TEXT,
@@ -506,7 +500,7 @@ CREATE TABLE staging.arm_groups (
     last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Interventions (dimension table - no FKs needed)
+-- Interventions 
 CREATE TABLE staging.interventions (
     intervention_key CHAR(16) PRIMARY KEY,
     intervention_name TEXT,
@@ -974,7 +968,7 @@ CREATE TABLE staging.event_groups (
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     adverse_event_key CHAR(16) NOT NULL REFERENCES staging.adverse_events(adverse_event_key),
     group_id VARCHAR(20),
-    title VARCHAR(100),
+    title TEXT,
     description TEXT,
     num_deaths FLOAT,
     num_deaths_at_risk FLOAT,
