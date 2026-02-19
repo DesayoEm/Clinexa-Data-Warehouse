@@ -9,6 +9,7 @@ from airflow.models import Variable
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
+
 from config.env_config import config
 
 
@@ -104,6 +105,33 @@ class Loader:
             return default_state
 
     def load_from_datalake(self):
+        """
+        Load parquet files from S3 staging layer into Postgres with upsert semantics.
+
+        Reads transformed parquet files from the datalake, loads each into a temp table,
+        then upserts into the corresponding staging table. Preserves first_loaded_on for
+        existing rows while updating last_seen_on, enabling downstream SCD Type 2 detection.
+
+        Process:
+            1. List and sort all parquet files for the execution date
+            2. Resume from last checkpoint if retrying after failure
+            3. For each file:
+               - Load parquet from S3 into DataFrame
+               - COPY into temp table
+               - Upsert into staging with ON CONFLICT
+               - Checkpoint progress for resumability
+
+        FK constraints are disabled during load (session_replication_role = 'replica')
+        since the transformation layer guarantees referential integrity.
+
+        Checkpoint:
+            Uses sorted file list + index for deterministic resume. On retry,
+            skips to last_processed_index + 1 and continues from there.
+
+        Raises:
+            Exception: Re-raises any database errors after resetting session_replication_role
+        """
+
         bucket_name = config.CLINEXA_BUCKET
         prefix = f"{config.CTGOV_DEST}/{config.STAGING_DEST}/{self.execution_date}/"
 
@@ -112,17 +140,26 @@ class Loader:
         files = self.s3.list_keys(bucket_name=bucket_name, prefix=prefix)
         files = sorted(f for f in files if "manifest" not in f)
 
+        files_to_load = len(files)
+        self.log.info(f"Found {files_to_load} files to load")
+
         last_processed_index = checkpoints.get("last_processed_index")
         start_index = last_processed_index + 1 if last_processed_index else 0
 
+        files_left = files_to_load - start_index
+        self.log.info(f"Found {files_left} files left to load after checking checkpoint")
+
+        if not files_left:
+            self.log.info("No files left to load")
+            return
+
         conn = self.pg_conn.get_conn()
         with conn.cursor() as cur:
+            cur.execute("SET session_replication_role = 'replica';")
             try:
                 for index, file_key in enumerate(
                     files[start_index:], start=start_index
                 ):
-                    cur.execute("SET session_replication_role = 'replica';")
-
                     obj = self.s3.get_key(file_key, bucket_name=bucket_name)
                     buffer = BytesIO()
                     obj.download_fileobj(buffer)
@@ -130,14 +167,16 @@ class Loader:
                     df = pd.read_parquet(buffer)
 
                     if df.empty or len(df.columns) == 0:
+                        # Ideally the transformation layer should not save empty files but JIC
                         self.log.info(f"Skipping empty file: {file_key}")
                         continue
 
-                    table_name = file_key.split("/")[-2]
+                    table_name = file_key.split("/")[
+                        -2
+                    ]  # files are saved in datalake with their corresponding table names
 
-                    audit_cols = {"first_loaded_at", "last_seen_at"}
+                    audit_cols = {"first_loaded_on", "last_seen_on"}
                     cols = [c for c in df.columns if c not in audit_cols]
-
 
                     csv_buffer = StringIO()
                     df[cols].to_csv(csv_buffer, index=False, header=False)
@@ -158,22 +197,22 @@ class Loader:
 
                     cur.execute(
                         f"""
-                        INSERT INTO staging.{table_name} ({','.join(cols)}, first_loaded_at, last_seen_at)
-                        SELECT {','.join(cols)}, NOW(), NOW()
+                        INSERT INTO staging.{table_name} ({','.join(cols)}, first_loaded_on, last_seen_on)
+                        SELECT {','.join(cols)}, DATE '{self.execution_date}', DATE '{self.execution_date}'
                         FROM tmp_{table_name}
                         ON CONFLICT ({','.join(pk_cols)}) 
                         DO UPDATE SET
-                            last_seen_at = NOW(),
+                            last_seen_on = DATE '{self.execution_date}',
                             {update_set}
                     """
                     )
 
                     cur.execute(f"DROP TABLE tmp_{table_name}")
                     conn.commit()
-
-                self.mark_checkpoint(
-                    {"last_processed_index": index, "last_processed_key": file_key}
-                )
+                    self.mark_checkpoint(
+                        {"last_processed_index": index, "last_processed_key": file_key}
+                    )
 
             finally:
                 cur.execute("SET session_replication_role = 'origin';")
+                self.log.info("Finished loading files")
