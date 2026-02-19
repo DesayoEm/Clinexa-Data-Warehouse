@@ -115,53 +115,65 @@ class Loader:
         last_processed_index = checkpoints.get("last_processed_index")
         start_index = last_processed_index + 1 if last_processed_index else 0
 
-        with self.pg_conn.cursor() as cur:
-            for index, file_key in enumerate(files[start_index:], start=start_index):
+        conn = self.pg_conn.get_conn()
+        with conn.cursor() as cur:
+            try:
+                for index, file_key in enumerate(
+                    files[start_index:], start=start_index
+                ):
+                    cur.execute("SET session_replication_role = 'replica';")
 
-                obj = self.s3.get_key(file_key, bucket_name=bucket_name)
-                buffer = BytesIO()
-                obj.download_fileobj(buffer)
-                buffer.seek(0)
-                df = pd.read_parquet(buffer)
+                    obj = self.s3.get_key(file_key, bucket_name=bucket_name)
+                    buffer = BytesIO()
+                    obj.download_fileobj(buffer)
+                    buffer.seek(0)
+                    df = pd.read_parquet(buffer)
 
-                table_name = file_key.split("/")[-2]
+                    if df.empty or len(df.columns) == 0:
+                        self.log.info(f"Skipping empty file: {file_key}")
+                        continue
 
-                audit_cols = {"first_loaded_at", "last_seen_at"}
-                cols = [c for c in df.columns if c not in audit_cols]
+                    table_name = file_key.split("/")[-2]
 
-                # Write to CSV buffer
-                csv_buffer = StringIO()
-                df[cols].to_csv(csv_buffer, index=False, header=False)
-                csv_buffer.seek(0)
+                    audit_cols = {"first_loaded_at", "last_seen_at"}
+                    cols = [c for c in df.columns if c not in audit_cols]
 
-                cur.execute(
-                    f"CREATE TEMP TABLE tmp_{table_name} (LIKE staging.{table_name} INCLUDING DEFAULTS)"
-                )
+                    # Write to CSV buffer
+                    csv_buffer = StringIO()
+                    df[cols].to_csv(csv_buffer, index=False, header=False)
+                    csv_buffer.seek(0)
 
-                cur.copy_expert(
-                    f"COPY tmp_{table_name} ({','.join(cols)}) FROM STDIN WITH CSV",
-                    csv_buffer,
-                )
+                    cur.execute(
+                        f"CREATE TEMP TABLE tmp_{table_name} (LIKE staging.{table_name} INCLUDING DEFAULTS)"
+                    )
 
-                pk_cols = PK_MAP.values()
-                update_cols = [c for c in cols if c not in pk_cols]
-                update_set = ",\n".join(f"{c} = EXCLUDED.{c}" for c in update_cols)
+                    cur.copy_expert(
+                        f"COPY tmp_{table_name} ({','.join(cols)}) FROM STDIN WITH CSV",
+                        csv_buffer,
+                    )
 
-                cur.execute(
-                    f"""
-                    INSERT INTO staging.{table_name} ({','.join(cols)}, first_loaded_at, last_seen_at)
-                    SELECT {','.join(cols)}, NOW(), NOW()
-                    FROM tmp_{table_name}
-                    ON CONFLICT ({','.join(pk_cols)}) 
-                    DO UPDATE SET
-                        last_seen_at = NOW(),
-                        {update_set}
-                """
-                )
+                    pk_cols = PK_MAP[table_name]
+                    update_cols = [c for c in cols if c not in pk_cols]
+                    update_set = ",\n".join(f"{c} = EXCLUDED.{c}" for c in update_cols)
 
-                cur.execute(f"DROP TABLE tmp_{table_name}")
-                self.pg_conn.commit()
+                    cur.execute(
+                        f"""
+                        INSERT INTO staging.{table_name} ({','.join(cols)}, first_loaded_at, last_seen_at)
+                        SELECT {','.join(cols)}, NOW(), NOW()
+                        FROM tmp_{table_name}
+                        ON CONFLICT ({','.join(pk_cols)}) 
+                        DO UPDATE SET
+                            last_seen_at = NOW(),
+                            {update_set}
+                    """
+                    )
+
+                    cur.execute(f"DROP TABLE tmp_{table_name}")
+                    conn.commit()
 
                 self.mark_checkpoint(
                     {"last_processed_index": index, "last_processed_key": file_key}
                 )
+
+            finally:
+                cur.execute("SET session_replication_role = 'origin';")

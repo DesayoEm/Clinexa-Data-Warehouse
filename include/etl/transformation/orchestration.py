@@ -220,6 +220,9 @@ class Transformer:
         bucket = config.CLINEXA_BUCKET
 
         for table_name, df in dfs.items():
+            if df.empty or len(df.columns) == 0:
+                continue
+
             key = (
                 f"{config.CTGOV_DEST}/"
                 f"{config.STAGING_DEST}/"
