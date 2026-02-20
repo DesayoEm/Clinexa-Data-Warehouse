@@ -95,7 +95,6 @@ def transform_interventions_browse_module(
                     interventions_mesh_ancestors.append(
                         {
                             "ancestor_key": ancestor_key,
-                            "study_key": study_key,
                             "ancestor_id": ancestor.get("id"),
                             "ancestor_term": term.lower(),
                         }

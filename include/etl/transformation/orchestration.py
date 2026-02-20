@@ -6,7 +6,7 @@ from collections import defaultdict
 import pandas as pd
 
 from airflow.utils.context import Context
-from airflow.models import Variable
+from airflow.sdk import Variable
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from include.etl.transformation.core_transformation.study_transformation import (
     process_study_file,
@@ -173,10 +173,23 @@ class Transformer:
         files = sorted(
             key for key in keys if "manifest" not in key
         )  # sorting here to enable reliable checkpointing
-        last_processed_index = self.load_checkpoint()["last_processed_index"]
 
+        files_to_load = len(files)
+        self.log.info(f"Found {files_to_load} files to load")
+
+        last_processed_index = self.load_checkpoint()["last_processed_index"]
         start_index = last_processed_index + 1 if last_processed_index else 0
-        for index, s3_key in enumerate(files, start=start_index):
+
+        files_left = files_to_load - start_index
+        self.log.info(
+            f"Found {files_left} files left to transform after reading checkpoint"
+        )
+
+        if not files_left:
+            self.log.info("No files left to load")
+            return
+
+        for index, s3_key in enumerate(files[start_index:], start=start_index):
 
             try:
                 batch_result = process_study_file(s3_key)
@@ -220,12 +233,15 @@ class Transformer:
         bucket = config.CLINEXA_BUCKET
 
         for table_name, df in dfs.items():
+            if df.empty or len(df.columns) == 0:
+                continue
+
             key = (
                 f"{config.CTGOV_DEST}/"
                 f"{config.STAGING_DEST}/"
                 f"{self.execution_date}/"
                 f"{table_name}/"
-                f"part-{index:03d}.parquet"
+                f"page-{index + 1:04d}.parquet"  # increased index by 1 to match actual page numbers
             )
 
             buffer = io.BytesIO()

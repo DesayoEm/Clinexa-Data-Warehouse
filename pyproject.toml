@@ -10,4 +10,6 @@ dependencies = []
 
 [tool.setuptools]
 include-package-data = true
-packages = ['dags', 'logs', 'infra', 'config', 'include', 'plugins', 'tests']
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["dags*", "infra*", "config*", "include*", "plugins*", "tests*"]

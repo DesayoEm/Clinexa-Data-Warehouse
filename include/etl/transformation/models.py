@@ -36,7 +36,7 @@ class StudyResult:
     study_central_contacts: List
     locations: List
     study_locations: List
-    references: List
+    study_references: List
     link_references: List
     ipd_references: List
     outcome_measures: List

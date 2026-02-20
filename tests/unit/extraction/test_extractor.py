@@ -128,7 +128,7 @@ def test_save_response(mock_config, mock_state_handler, mock_context, mock_s3_ho
     call_kwargs = mock_s3_hook.load_bytes.call_args[1]
 
     assert call_kwargs["bucket_name"] == "clinical-trials-bucket"
-    assert call_kwargs["key"] == "CTGOV/raw/2026-01-15/1.parquet"
+    assert call_kwargs["key"] == "CTGOV/raw/2026-01-15/page-0001.parquet"
     assert call_kwargs["replace"] is True
 
     # ensure page counter incremented

@@ -2,7 +2,8 @@ import logging
 from typing import Dict
 import json
 
-from airflow.models import Variable
+# from airflow.models import Variable
+from airflow.sdk import Variable
 from airflow.utils.context import Context
 
 from config.env_config import config
