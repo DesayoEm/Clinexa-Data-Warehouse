@@ -193,13 +193,15 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
     result["other_outcomes"].extend(other_outcomes)
 
     # contactsLocationsModule
-    central_contacts, study_central_contacts, locations, study_locations = (
+    central_contacts, study_central_contacts, locations, study_locations, location_contacts, study_location_contacts = (
         transform_contacts_location_module(study_key, study)
     )
     result["central_contacts"].extend(central_contacts)
     result["study_central_contacts"].extend(study_central_contacts)
     result["locations"].extend(locations)
     result["study_locations"].extend(study_locations)
+    result["location_contacts"].extend(location_contacts)
+    result["study_location_contacts"].extend(study_location_contacts)
 
     # referencesModule
     study_references, link_references, ipd_references = transform_reference_module(
@@ -342,6 +344,8 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
         study_central_contacts=result["study_central_contacts"],
         locations=result["locations"],
         study_locations=result["study_locations"],
+        location_contacts=result["location_contacts"],
+        study_location_contacts=result["study_location_contacts"],
         study_references=result["study_references"],
         link_references=result["link_references"],
         ipd_references=result["ipd_references"],
@@ -442,6 +446,8 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
     df_study_central_contacts = pd.DataFrame(results["study_central_contacts"])
     df_locations = pd.DataFrame(results["locations"])
     df_study_locations = pd.DataFrame(results["study_locations"])
+    df_location_contacts = pd.DataFrame(results["location_contacts"])
+    df_study_location_contacts = pd.DataFrame(results["study_location_contacts"])
 
     # referencesModule
     df_study_references = pd.DataFrame(results["study_references"])
@@ -573,6 +579,13 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
     df_locations = df_locations.drop_duplicates(subset=["location_key"])
     df_study_locations = df_study_locations.drop_duplicates(
         subset=["study_key", "location_key"]
+    )
+    df_location_contacts = df_location_contacts.drop_duplicates(
+        subset=["contact_key"]
+    )
+
+    df_study_location_contacts = df_study_location_contacts.drop_duplicates(
+        subset=["study_key", "contact_key"]
     )
 
     # arm interventions
@@ -735,6 +748,8 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
         "study_central_contacts": df_study_central_contacts,
         "locations": df_locations,
         "study_locations": df_study_locations,
+        "location_contacts": df_location_contacts,
+        "study_location_contacts": df_study_location_contacts,
         "study_references": df_study_references,
         "link_references": df_link_references,
         "ipd_references": df_ipd_references,

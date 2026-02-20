@@ -29,11 +29,13 @@ def transform_contacts_location_module(study_key: str, study_data: pd.Series) ->
             location data
 
     Returns:
-        Four-element tuple containing:
+        Six-element tuple containing:
             - central_contacts: Contact dimension records
             - study_central_contacts: Bridge table linking studies to contacts
             - locations: Location dimension records
             - study_locations: Bridge table with study-specific location data
+            - location_contacts: Location contacts
+            - study_location_contacts: Bridge table with study-specific contact data
 
 
         All lists return empty if no contacts/locations exist for the study.
@@ -43,6 +45,8 @@ def transform_contacts_location_module(study_key: str, study_data: pd.Series) ->
     study_central_contacts = []
     locations = []
     study_locations = []
+    location_contacts = []
+    study_location_contacts = []
 
     contacts_locations_index = NON_SCALAR_FIELDS["contacts_location"]["index_field"]
 
@@ -117,9 +121,37 @@ def transform_contacts_location_module(study_key: str, study_data: pd.Series) ->
                 {
                     "study_key": study_key,
                     "location_key": location_key,
-                    "status": location.get("status"),
-                    "contacts": location.get("contacts"),  # json blob
+                    "status": location.get("status")
                 }
             )
 
-    return central_contacts, study_central_contacts, locations, study_locations
+            contact_list = location.get("contacts")
+            for contact in contact_list:
+                name = contact.get("name")
+                role = contact.get("role")
+                phone = contact.get("phone")
+                phone_ext = contact.get("phoneExt")
+                email = contact.get("email")
+
+                contact_key = generate_key(name, role, phone, phone_ext, email)
+
+                location_contacts.append(
+                    {
+                        "contact_key": contact_key,
+                        "name": name,
+                        "role": role,
+                        "phone": phone,
+                        "phone_ext": phone_ext,
+                        "email": email
+                    }
+                )
+
+                study_location_contacts.append(
+                    {
+                        "study_key": study_key,
+                        "location_key": location_key,
+                        "contact_key": contact_key,
+                    }
+                )
+
+    return central_contacts, study_central_contacts, locations, study_locations, location_contacts, study_location_contacts

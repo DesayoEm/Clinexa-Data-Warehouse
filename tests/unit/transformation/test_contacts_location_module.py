@@ -1,6 +1,6 @@
 import pandas as pd
 from include.etl.transformation.core_transformation.modules.contacts_location import (
-    transform_contacts_location_module,
+    transform_contacts_location_module
 )
 
 
@@ -30,7 +30,7 @@ def test_central_contacts_extracted(study_key, full_study_data):
 
 def test_locations_extracted_with_geopoint(study_key, full_study_data):
     """Test locations are extracted including geocoordinates."""
-    _, _, locations, study_locations = transform_contacts_location_module(
+    _, _, locations, study_locations, _ , _ = transform_contacts_location_module(
         study_key, full_study_data
     )
 
@@ -39,6 +39,19 @@ def test_locations_extracted_with_geopoint(study_key, full_study_data):
     assert locations[0]["city"] == "Boston"
     assert locations[0]["lat"] == 42.3601
     assert locations[0]["lon"] == -71.0589
+
+def test_locations_extracted_with_contacts(study_key, full_study_data):
+    """Test locations are extracted including contacts."""
+    _, _, _, _, location_contacts, study_location_contacts = transform_contacts_location_module(
+        study_key, full_study_data
+    )
+
+    assert len(location_contacts) == 2
+    assert location_contacts[0]["name"] == "Dr. Olusola"
+    assert location_contacts[0]["role"] == "Coordinator"
+    assert location_contacts[0]["phone"] == "90909090"
+    assert location_contacts[0]["phone_ext"] == "+234"
+    assert location_contacts[0]["email"] == "olusola@hospital.com"
 
 
 def test_study_locations_has_status(study_key, full_study_data):

@@ -656,7 +656,6 @@ CREATE TABLE staging.study_locations (
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     location_key CHAR(16) NOT NULL REFERENCES staging.locations(location_key),
     status RecruitmentStatus,
-    contacts TEXT,  -- contacts stored as TEXT as source JSON is usually broken. only for use by patient matching API
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -665,7 +664,35 @@ CREATE TABLE staging.study_locations (
     PRIMARY KEY (study_key, location_key)
 );
 
--- Indexes for patient matching queries
+CREATE TABLE staging.location_contacts (
+    contact_key CHAR(16) PRIMARY KEY,
+    name TEXT,
+    role TEXT,
+    phone TEXT,
+    phone_ext TEXT,
+    email TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    first_loaded_on DATE,
+    last_seen_on DATE
+    );
+
+
+CREATE TABLE staging.study_location_contacts (
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    location_key CHAR(16) NOT NULL REFERENCES staging.study_locations(location_key),
+    contact_key CHAR(16) NOT NULL REFERENCES staging.location_contacts(contact_key),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    first_loaded_on DATE,
+    last_seen_on DATE,
+    PRIMARY KEY (study_key, location_key, contact_key)
+);
+
+
+
 CREATE INDEX idx_locations_country ON staging.locations(country);
 CREATE INDEX idx_locations_country_city ON staging.locations(country, city);
 CREATE INDEX idx_locations_geo ON staging.locations(lat, lon) WHERE lat IS NOT NULL AND lon IS NOT NULL;
