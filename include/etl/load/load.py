@@ -5,10 +5,9 @@ import pandas as pd
 from io import StringIO, BytesIO
 from include.etl.load.pk_map import PK_MAP
 from airflow.utils.context import Context
-from airflow.models import Variable
+from airflow.sdk import Variable
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-
 
 from config.env_config import config
 
@@ -147,7 +146,9 @@ class Loader:
         start_index = last_processed_index + 1 if last_processed_index else 0
 
         files_left = files_to_load - start_index
-        self.log.info(f"Found {files_left} files left to load after checking checkpoint")
+        self.log.info(
+            f"Found {files_left} files left to load after reading  checkpoint"
+        )
 
         if not files_left:
             self.log.info("No files left to load")

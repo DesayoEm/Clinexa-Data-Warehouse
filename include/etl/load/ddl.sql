@@ -611,7 +611,7 @@ CREATE TABLE staging.other_outcomes (
 -- Central Contacts
 CREATE TABLE staging.central_contacts (
     contact_key CHAR(16) PRIMARY KEY,
-    name VARCHAR(100),
+    name TEXT,
     role ContactRole,
     phone VARCHAR(30),
     phone_ext VARCHAR(20),

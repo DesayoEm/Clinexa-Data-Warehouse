@@ -165,8 +165,8 @@ class Extractor:
              - Rate limit check is ran before each request to prevent API throttling
         """
 
-        # while True:
-        while self.last_saved_page < 2:  # test vol
+        while True:
+            # while self.last_saved_page < 2:  # test vol
             current_page = self.last_saved_page + 1
             # current page is used for logging and error reporting within the context of this function, and
             # not for checkpointing/tracking progress. progress is tracked by self.last_saved_page

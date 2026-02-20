@@ -1,5 +1,6 @@
-import sys
 import pytest
+from unittest.mock import MagicMock
+import sys
 from unittest.mock import MagicMock
 
 from tests.unit.transformation.fixtures import (
@@ -22,8 +23,6 @@ from tests.unit.extraction.fixtures import (
     sample_api_response_last_page,
 )
 
-import sys
-from unittest.mock import MagicMock
 
 # mock config
 mock_config = MagicMock()
@@ -59,7 +58,7 @@ AIRFLOW_MODULES = {
     "airflow": mock_airflow,
     "airflow.utils": mock_airflow.utils,
     "airflow.utils.context": mock_airflow.utils.context,
-    "airflow.models": mock_airflow.models,
+    "airflow.sdk": mock_airflow.sdk,
     "airflow.providers": mock_airflow.providers,
     "airflow.providers.amazon": mock_airflow.providers.amazon,
     "airflow.providers.amazon.aws": mock_airflow.providers.amazon.aws,
@@ -69,7 +68,7 @@ AIRFLOW_MODULES = {
 
 for module_name, mock_module in AIRFLOW_MODULES.items():
     sys.modules[module_name] = mock_module
-sys.modules["airflow.models"].Variable = MagicMock()
+sys.modules["airflow.sdk"].Variable = MagicMock()
 
 
 sys.modules["config.env_config"] = MagicMock()
