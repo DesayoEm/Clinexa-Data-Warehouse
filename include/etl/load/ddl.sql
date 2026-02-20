@@ -531,7 +531,6 @@ CREATE TABLE staging.study_interventions (
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     intervention_key CHAR(16) NOT NULL REFERENCES staging.interventions(intervention_key),
     description TEXT, --study specific description
-    is_primary_name BOOLEAN,
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -540,8 +539,8 @@ CREATE TABLE staging.study_interventions (
     PRIMARY KEY (study_key, intervention_key)
 );
 
--- Other Intervention Names (dimension table for aliases)
-CREATE TABLE staging.other_intervention_names (
+-- Other Intervention Names
+CREATE TABLE staging.intervention_aliases (
     intervention_key CHAR(16) PRIMARY KEY,
     intervention_name TEXT,
     intervention_type InterventionType,
@@ -557,7 +556,6 @@ CREATE TABLE staging.study_intervention_aliases (
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     intervention_key CHAR(16) NOT NULL REFERENCES staging.other_intervention_names(intervention_key),
     description TEXT,
-    is_primary_name BOOLEAN,
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -1220,7 +1218,7 @@ CREATE TABLE staging.study_interventions_mesh (
     PRIMARY KEY (mesh_key, study_key)
 );
 
--- Interventions MeSH Ancestors dimension table (parent terms in MeSH tree)
+-- Interventions MeSH Ancestors
 CREATE TABLE staging.interventions_mesh_ancestors (
     ancestor_key CHAR(16) PRIMARY KEY,
     ancestor_id VARCHAR(20),
