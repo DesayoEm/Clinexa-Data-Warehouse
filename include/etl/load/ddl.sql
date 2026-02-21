@@ -554,7 +554,7 @@ CREATE TABLE staging.intervention_aliases (
 -- Study-Other Intervention Names 
 CREATE TABLE staging.study_intervention_aliases (
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
-    intervention_key CHAR(16) NOT NULL REFERENCES staging.other_intervention_names(intervention_key),
+    intervention_key CHAR(16) NOT NULL REFERENCES staging.intervention_aliases(intervention_key),
     description TEXT,
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -679,7 +679,7 @@ CREATE TABLE staging.location_contacts (
 
 CREATE TABLE staging.study_location_contacts (
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
-    location_key CHAR(16) NOT NULL REFERENCES staging.study_locations(location_key),
+    location_key CHAR(16) NOT NULL REFERENCES staging.locations(location_key),
     contact_key CHAR(16) NOT NULL REFERENCES staging.location_contacts(contact_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),

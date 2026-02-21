@@ -126,32 +126,33 @@ def transform_contacts_location_module(study_key: str, study_data: pd.Series) ->
             )
 
             contact_list = location.get("contacts")
-            for contact in contact_list:
-                name = contact.get("name")
-                role = contact.get("role")
-                phone = contact.get("phone")
-                phone_ext = contact.get("phoneExt")
-                email = contact.get("email")
+            if isinstance(contact_list, (list, np.ndarray)) and len(contact_list) > 0:
+                for contact in contact_list:
+                    name = contact.get("name")
+                    role = contact.get("role")
+                    phone = contact.get("phone")
+                    phone_ext = contact.get("phoneExt")
+                    email = contact.get("email")
 
-                contact_key = generate_key(name, role, phone, phone_ext, email)
+                    contact_key = generate_key(name, role, phone, phone_ext, email)
 
-                location_contacts.append(
-                    {
-                        "contact_key": contact_key,
-                        "name": name,
-                        "role": role,
-                        "phone": phone,
-                        "phone_ext": phone_ext,
-                        "email": email
-                    }
-                )
+                    location_contacts.append(
+                        {
+                            "contact_key": contact_key,
+                            "name": name,
+                            "role": role,
+                            "phone": phone,
+                            "phone_ext": phone_ext,
+                            "email": email
+                        }
+                    )
 
-                study_location_contacts.append(
-                    {
-                        "study_key": study_key,
-                        "location_key": location_key,
-                        "contact_key": contact_key,
-                    }
-                )
+                    study_location_contacts.append(
+                        {
+                            "study_key": study_key,
+                            "location_key": location_key,
+                            "contact_key": contact_key,
+                        }
+                    )
 
     return central_contacts, study_central_contacts, locations, study_locations, location_contacts, study_location_contacts

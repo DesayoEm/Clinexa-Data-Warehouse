@@ -34,9 +34,9 @@ class Loader:
         checkpoint_key = f"{ti.task_id}_{self.execution_date}"
 
         Variable.set(checkpoint_key, json.dumps(checkpoint_value))
-        self.log.info(
-            f"Checkpoint saved - Key: {checkpoint_key}, Checkpoint: {checkpoint_value}"
-        )
+        # self.log.info(
+        #     f"Checkpoint saved - Key: {checkpoint_key}, Checkpoint: {checkpoint_value}"
+        # ) #hella noisy
 
     def load_checkpoint(self) -> Dict:
         """
