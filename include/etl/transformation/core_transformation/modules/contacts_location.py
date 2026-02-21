@@ -121,7 +121,7 @@ def transform_contacts_location_module(study_key: str, study_data: pd.Series) ->
                 {
                     "study_key": study_key,
                     "location_key": location_key,
-                    "status": location.get("status")
+                    "status": location.get("status"),
                 }
             )
 
@@ -143,7 +143,7 @@ def transform_contacts_location_module(study_key: str, study_data: pd.Series) ->
                             "role": role,
                             "phone": phone,
                             "phone_ext": phone_ext,
-                            "email": email
+                            "email": email,
                         }
                     )
 
@@ -155,4 +155,11 @@ def transform_contacts_location_module(study_key: str, study_data: pd.Series) ->
                         }
                     )
 
-    return central_contacts, study_central_contacts, locations, study_locations, location_contacts, study_location_contacts
+    return (
+        central_contacts,
+        study_central_contacts,
+        locations,
+        study_locations,
+        location_contacts,
+        study_location_contacts,
+    )

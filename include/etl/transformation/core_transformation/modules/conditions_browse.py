@@ -31,25 +31,25 @@ def transform_conditions_browse_module(study_key: str, study_data: pd.Series) ->
 
     Returns:
         Eight-element tuple containing dimension and bridge table pairs:
-            - conditions_mesh, study_conditions_mesh: Direct MeSH assignments
-            - conditions_mesh_ancestors, study_conditions_mesh_ancestors
-            - conditions_browse_leaves, study_conditions_browse_leaves
-            - conditions_browse_branches, study_conditions_browse_branches
+            - condition_meshes, study_condition_meshes: Direct MeSH assignments
+            - condition_mesh_ancestors, study_condition_mesh_ancestors
+            - condition_browse_leaves, study_condition_browse_leaves
+            - condition_browse_branches, study_condition_browse_branches
 
         All lists return empty if no MeSH data exists for the study.
     """
 
-    conditions_mesh = []
-    study_conditions_mesh = []
+    condition_meshes = []
+    study_condition_meshes = []
 
-    conditions_mesh_ancestors = []
-    study_conditions_mesh_ancestors = []
+    condition_mesh_ancestors = []
+    study_condition_mesh_ancestors = []
 
-    conditions_browse_leaves = []
-    study_conditions_browse_leaves = []
+    condition_browse_leaves = []
+    study_condition_browse_leaves = []
 
-    conditions_browse_branches = []
-    study_conditions_browse_branches = []
+    condition_browse_branches = []
+    study_condition_browse_branches = []
 
     conditions_browse_index = NON_SCALAR_FIELDS["conditions_browse"]["index_field"]
 
@@ -63,7 +63,7 @@ def transform_conditions_browse_module(study_key: str, study_data: pd.Series) ->
                 for term in terms:
                     term = term.strip()
                     mesh_key = generate_key(term)
-                    conditions_mesh.append(
+                    condition_meshes.append(
                         {
                             "mesh_key": mesh_key,
                             "mesh_id": mesh.get("id"),
@@ -71,7 +71,7 @@ def transform_conditions_browse_module(study_key: str, study_data: pd.Series) ->
                         }
                     )
 
-                    study_conditions_mesh.append(
+                    study_condition_meshes.append(
                         {"mesh_key": mesh_key, "study_key": study_key}
                     )
 
@@ -87,7 +87,7 @@ def transform_conditions_browse_module(study_key: str, study_data: pd.Series) ->
                 for term in terms:
                     term = term.strip()
                     ancestor_key = generate_key(term)
-                    conditions_mesh_ancestors.append(
+                    condition_mesh_ancestors.append(
                         {
                             "ancestor_key": ancestor_key,
                             "ancestor_id": ancestor.get("id"),
@@ -95,7 +95,7 @@ def transform_conditions_browse_module(study_key: str, study_data: pd.Series) ->
                         }
                     )
 
-                    study_conditions_mesh_ancestors.append(
+                    study_condition_mesh_ancestors.append(
                         {"ancestor_key": ancestor_key, "study_key": study_key}
                     )
 
@@ -108,7 +108,7 @@ def transform_conditions_browse_module(study_key: str, study_data: pd.Series) ->
             leaf_id = browse_leaf.get("id")
             leaf_key = generate_key(leaf_id)
 
-            conditions_browse_leaves.append(
+            condition_browse_leaves.append(
                 {
                     "leaf_key": leaf_key,
                     "leaf_id": leaf_id,
@@ -118,7 +118,7 @@ def transform_conditions_browse_module(study_key: str, study_data: pd.Series) ->
                 }
             )
 
-            study_conditions_browse_leaves.append(
+            study_condition_browse_leaves.append(
                 {"leaf_key": leaf_key, "study_key": study_key}
             )
 
@@ -133,7 +133,7 @@ def transform_conditions_browse_module(study_key: str, study_data: pd.Series) ->
             branch_name = browse_branch.get("name")
             branch_key = generate_key(branch_abbrev, branch_name)
 
-            conditions_browse_branches.append(
+            condition_browse_branches.append(
                 {
                     "branch_key": branch_key,
                     "abbrev": branch_abbrev.lower(),
@@ -141,17 +141,17 @@ def transform_conditions_browse_module(study_key: str, study_data: pd.Series) ->
                 }
             )
 
-            study_conditions_browse_branches.append(
+            study_condition_browse_branches.append(
                 {"branch_key": branch_key, "study_key": study_key}
             )
 
     return (
-        conditions_mesh,
-        study_conditions_mesh,
-        conditions_mesh_ancestors,
-        study_conditions_mesh_ancestors,
-        conditions_browse_leaves,
-        study_conditions_browse_leaves,
-        conditions_browse_branches,
-        study_conditions_browse_branches,
+        condition_meshes,
+        study_condition_meshes,
+        condition_mesh_ancestors,
+        study_condition_mesh_ancestors,
+        condition_browse_leaves,
+        study_condition_browse_leaves,
+        condition_browse_branches,
+        study_condition_browse_branches,
     )

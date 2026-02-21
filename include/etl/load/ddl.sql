@@ -1096,7 +1096,7 @@ CREATE TABLE staging.violations (
 );
 
 -- Conditions MeSH 
-CREATE TABLE staging.conditions_mesh (
+CREATE TABLE staging.condition_meshes (
     mesh_key CHAR(16) PRIMARY KEY,
     mesh_id VARCHAR(20),
     mesh_term TEXT,
@@ -1108,8 +1108,8 @@ CREATE TABLE staging.conditions_mesh (
 );
 
 -- Study-Conditions MESH 
-CREATE TABLE staging.study_conditions_mesh (
-    mesh_key CHAR(16) NOT NULL REFERENCES staging.conditions_mesh(mesh_key),
+CREATE TABLE staging.study_condition_meshes (
+    mesh_key CHAR(16) NOT NULL REFERENCES staging.condition_meshes(mesh_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -1120,7 +1120,7 @@ CREATE TABLE staging.study_conditions_mesh (
 );
 
 -- Conditions MeSH Ancestors dimension table (parent terms in MeSH tree)
-CREATE TABLE staging.conditions_mesh_ancestors (
+CREATE TABLE staging.condition_mesh_ancestors (
     ancestor_key CHAR(16) PRIMARY KEY,
     ancestor_id VARCHAR(20),
     ancestor_term TEXT,
@@ -1133,8 +1133,8 @@ CREATE TABLE staging.conditions_mesh_ancestors (
 );
 
 -- Study-Conditions MeSH Ancestors 
-CREATE TABLE staging.study_conditions_mesh_ancestors (
-    ancestor_key CHAR(16) NOT NULL REFERENCES staging.conditions_mesh_ancestors(ancestor_key),
+CREATE TABLE staging.study_condition_mesh_ancestors (
+    ancestor_key CHAR(16) NOT NULL REFERENCES staging.condition_mesh_ancestors(ancestor_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -1145,7 +1145,7 @@ CREATE TABLE staging.study_conditions_mesh_ancestors (
 );
 
 -- Conditions Browse Leaves 
-CREATE TABLE staging.conditions_browse_leaves (
+CREATE TABLE staging.condition_browse_leaves (
     leaf_key CHAR(16) PRIMARY KEY,
     leaf_id VARCHAR(20),
     name TEXT,
@@ -1159,8 +1159,8 @@ CREATE TABLE staging.conditions_browse_leaves (
 );
 
 -- Study-Conditions Browse 
-CREATE TABLE staging.study_conditions_browse_leaves (
-    leaf_key CHAR(16) NOT NULL REFERENCES staging.conditions_browse_leaves(leaf_key),
+CREATE TABLE staging.study_condition_browse_leaves (
+    leaf_key CHAR(16) NOT NULL REFERENCES staging.condition_browse_leaves(leaf_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -1171,7 +1171,7 @@ CREATE TABLE staging.study_conditions_browse_leaves (
 );
 
 -- Conditions Browse Branches 
-CREATE TABLE staging.conditions_browse_branches (
+CREATE TABLE staging.condition_browse_branches (
     branch_key CHAR(16) PRIMARY KEY,
     abbrev TEXT,
     name TEXT,
@@ -1183,8 +1183,8 @@ CREATE TABLE staging.conditions_browse_branches (
 );
 
 -- Study-Conditions Browse Branches 
-CREATE TABLE staging.study_conditions_browse_branches (
-    branch_key CHAR(16) NOT NULL REFERENCES staging.conditions_browse_branches(branch_key),
+CREATE TABLE staging.study_condition_browse_branches (
+    branch_key CHAR(16) NOT NULL REFERENCES staging.condition_browse_branches(branch_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -1195,7 +1195,7 @@ CREATE TABLE staging.study_conditions_browse_branches (
 );
 
 -- Interventions MeSH 
-CREATE TABLE staging.interventions_mesh (
+CREATE TABLE staging.intervention_meshes (
     mesh_key CHAR(16) PRIMARY KEY,
     mesh_id VARCHAR(20),
     mesh_term TEXT,
@@ -1207,8 +1207,8 @@ CREATE TABLE staging.interventions_mesh (
 );
 
 -- Study-Interventions MESH 
-CREATE TABLE staging.study_interventions_mesh (
-    mesh_key CHAR(16) NOT NULL REFERENCES staging.interventions_mesh(mesh_key),
+CREATE TABLE staging.study_intervention_meshes (
+    mesh_key CHAR(16) NOT NULL REFERENCES staging.intervention_meshes(mesh_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -1219,7 +1219,7 @@ CREATE TABLE staging.study_interventions_mesh (
 );
 
 -- Interventions MeSH Ancestors
-CREATE TABLE staging.interventions_mesh_ancestors (
+CREATE TABLE staging.intervention_mesh_ancestors (
     ancestor_key CHAR(16) PRIMARY KEY,
     ancestor_id VARCHAR(20),
     ancestor_term TEXT,
@@ -1232,8 +1232,8 @@ CREATE TABLE staging.interventions_mesh_ancestors (
 );
 
 -- Study-Interventions MeSH Ancestors 
-CREATE TABLE staging.study_interventions_mesh_ancestors (
-    ancestor_key CHAR(16) NOT NULL REFERENCES staging.interventions_mesh_ancestors(ancestor_key),
+CREATE TABLE staging.study_intervention_mesh_ancestors (
+    ancestor_key CHAR(16) NOT NULL REFERENCES staging.intervention_mesh_ancestors(ancestor_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -1244,7 +1244,7 @@ CREATE TABLE staging.study_interventions_mesh_ancestors (
 );
 
 -- Interventions Browse Leaves 
-CREATE TABLE staging.interventions_browse_leaves (
+CREATE TABLE staging.intervention_browse_leaves (
     leaf_key CHAR(16) PRIMARY KEY,
     leaf_id VARCHAR(20),
     name TEXT,
@@ -1258,8 +1258,8 @@ CREATE TABLE staging.interventions_browse_leaves (
 );
 
 -- Study-Interventions Browse 
-CREATE TABLE staging.study_interventions_browse_leaves (
-    leaf_key CHAR(16) NOT NULL REFERENCES staging.interventions_browse_leaves(leaf_key),
+CREATE TABLE staging.study_intervention_browse_leaves (
+    leaf_key CHAR(16) NOT NULL REFERENCES staging.intervention_browse_leaves(leaf_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -1270,7 +1270,7 @@ CREATE TABLE staging.study_interventions_browse_leaves (
 );
 
 -- Interventions Browse Branches 
-CREATE TABLE staging.interventions_browse_branches (
+CREATE TABLE staging.intervention_browse_branches (
     branch_key CHAR(16) PRIMARY KEY,
     abbrev TEXT,
     name TEXT,
@@ -1282,8 +1282,8 @@ CREATE TABLE staging.interventions_browse_branches (
 );
 
 -- Study-Interventions Browse Branches 
-CREATE TABLE staging.study_interventions_browse_branches (
-    branch_key CHAR(16) NOT NULL REFERENCES staging.interventions_browse_branches(branch_key),
+CREATE TABLE staging.study_intervention_browse_branches (
+    branch_key CHAR(16) NOT NULL REFERENCES staging.intervention_browse_branches(branch_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),

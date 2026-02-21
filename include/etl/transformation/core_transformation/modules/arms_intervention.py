@@ -192,7 +192,7 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
                         {
                             "study_key": study_key,
                             "intervention_key": other_intervention_key,
-                            "description": intervention.get("description")
+                            "description": intervention.get("description"),
                         }
                     )
             # armGroupLabels is excluded to avoid bi-directional inconsistencies due to human errors from source.
