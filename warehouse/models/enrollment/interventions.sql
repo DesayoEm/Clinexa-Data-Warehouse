@@ -4,11 +4,35 @@
     unique_key = 'intervention_key'
 ) }}
 
-WITH interventions_source AS (
-    SELECT * FROM {{ source('staging', 'interventions') }}
-),
+WITH intervention_aliases_source AS (
+    SELECT *
+    FROM {{ source('staging', 'intervention_aliases') }}
+    {% if is_incremental() %}
+        WHERE intervention_key NOT IN (SELECT intervention_key FROM {{ this }})
+    {% endif %}
+    ),
 
-interventions AS (
+    interventions_source AS (
+    SELECT *
+    FROM {{ source('staging', 'interventions') }}
+    {% if is_incremental() %}
+        WHERE intervention_key NOT IN (SELECT intervention_key FROM {{ this }})
+    {% endif %}
+    ),
+
+    intervention_aliases AS (
+        SELECT
+            intervention_key,
+            intervention_name,
+            intervention_type,
+            dag_execution_date,
+            dag_id,
+            dag_run_id,
+            CURRENT_DATE AS dbt_created_on
+        FROM intervention_aliases_source
+    ),
+
+    interventions AS (
     SELECT
         intervention_key,
         intervention_name,
@@ -16,10 +40,14 @@ interventions AS (
         dag_execution_date,
         dag_id,
         dag_run_id,
-        first_loaded_on,
-        last_seen_on,
         CURRENT_DATE AS dbt_created_on
     FROM interventions_source
-)
+    ),
 
-SELECT * FROM interventions
+    final AS(
+    SELECT * FROM intervention_aliases
+    UNION
+    SELECT * FROM interventions
+    )
+
+SELECT * FROM final

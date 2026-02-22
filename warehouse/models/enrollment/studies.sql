@@ -5,10 +5,13 @@
 ) }}
 
 
-
-with studies_source as (
-    select * from {{ source ('staging', 'studies')}}
-),
+WITH studies_source AS (
+    SELECT *
+    FROM {{ source('staging', 'studies') }}
+    {% if is_incremental() %}
+        WHERE last_seen_on > (SELECT MAX (last_seen_on) FROM {{ this }})
+    {% endif %}
+    ),
 
 studies_transformed AS (
     SELECT

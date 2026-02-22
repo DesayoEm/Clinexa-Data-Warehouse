@@ -77,8 +77,6 @@ CREATE TABLE enrollment.secondary_ids (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE,
     dbt_created_on DATE
 );
 
@@ -90,8 +88,6 @@ CREATE TABLE enrollment.nct_aliases (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE,
     dbt_created_on DATE
 );
 
@@ -117,21 +113,10 @@ CREATE TABLE enrollment.study_sponsors (
     dbt_created_on DATE
 );
 
--- Collaborator
-CREATE TABLE enrollment.collaborators (
-    collaborator_key CHAR(16) PRIMARY KEY,
-    name VARCHAR(160),
-    collaborator_class TEXT,
-    dag_execution_date DATE,
-    dag_id VARCHAR(100),
-    dag_run_id VARCHAR(100),
-    dbt_created_on DATE
-);
-
 -- Study-Collaborator
 CREATE TABLE enrollment.study_collaborators (
     study_key CHAR(16) NOT NULL REFERENCES enrollment.studies(study_key),
-    collaborator_key CHAR(16) NOT NULL REFERENCES enrollment.collaborators(collaborator_key),
+    collaborator_key CHAR(16) NOT NULL REFERENCES enrollment.sponsors(sponsor_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -171,8 +156,6 @@ CREATE TABLE enrollment.keywords (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE,
     dbt_created_on DATE
 );
 
@@ -218,23 +201,11 @@ CREATE TABLE enrollment.study_interventions (
     PRIMARY KEY (study_key, intervention_key)
 );
 
--- Other Intervention Names
-CREATE TABLE enrollment.intervention_aliases (
-    intervention_key CHAR(16) PRIMARY KEY,
-    intervention_name TEXT,
-    intervention_type InterventionType,
-    dag_execution_date DATE,
-    dag_id VARCHAR(100),
-    dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE,
-    dbt_created_on DATE
-);
 
 -- Study-Other Intervention Names
 CREATE TABLE enrollment.study_intervention_aliases (
     study_key CHAR(16) NOT NULL REFERENCES enrollment.studies(study_key),
-    intervention_key CHAR(16) NOT NULL REFERENCES enrollment.intervention_aliases(intervention_key),
+    intervention_key CHAR(16) NOT NULL REFERENCES enrollment.interventions(intervention_key),
     description TEXT,
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -262,7 +233,7 @@ CREATE TABLE enrollment.contacts (
 -- Study-Central Contacts
 CREATE TABLE enrollment.study_central_contacts (
     study_key CHAR(16) NOT NULL REFERENCES enrollment.studies(study_key),
-    contact_key CHAR(16) NOT NULL REFERENCES enrollment.central_contacts(contact_key),
+    contact_key CHAR(16) NOT NULL REFERENCES enrollment.contacts(contact_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -273,7 +244,7 @@ CREATE TABLE enrollment.study_central_contacts (
 CREATE TABLE enrollment.study_location_contacts (
     study_key CHAR(16) NOT NULL REFERENCES enrollment.studies(study_key),
     location_key CHAR(16) NOT NULL REFERENCES enrollment.locations(location_key),
-    contact_key CHAR(16) NOT NULL REFERENCES enrollment.location_contacts(contact_key),
+    contact_key CHAR(16) NOT NULL REFERENCES enrollment.contacts(contact_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -293,8 +264,6 @@ CREATE TABLE enrollment.locations (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE,
     dbt_created_on DATE
 );
 
@@ -323,8 +292,6 @@ CREATE TABLE enrollment.condition_meshes (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE,
     dbt_created_on DATE
 );
 
@@ -335,8 +302,6 @@ CREATE TABLE enrollment.study_condition_meshes (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE,
     dbt_created_on DATE,
     PRIMARY KEY (mesh_key, study_key)
 );
@@ -350,8 +315,6 @@ CREATE TABLE enrollment.condition_mesh_ancestors (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE,
     dbt_created_on DATE
 );
 
@@ -378,8 +341,6 @@ CREATE TABLE enrollment.condition_browse_leaves (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE,
     dbt_created_on DATE
 );
 
@@ -404,8 +365,6 @@ CREATE TABLE enrollment.condition_browse_branches (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE,
     dbt_created_on DATE
 );
 
@@ -430,8 +389,6 @@ CREATE TABLE enrollment.intervention_meshes (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE,
     dbt_created_on DATE
 );
 
@@ -457,8 +414,6 @@ CREATE TABLE enrollment.intervention_mesh_ancestors (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE,
     dbt_created_on DATE
 );
 
@@ -485,8 +440,6 @@ CREATE TABLE enrollment.intervention_browse_leaves (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE,
     dbt_created_on DATE
 );
 
@@ -511,8 +464,6 @@ CREATE TABLE enrollment.intervention_browse_branches (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE,
     dbt_created_on DATE
 );
 

@@ -6,21 +6,23 @@
 
 
 WITH condition_meshes_source AS (
-    SELECT * FROM {{ source('staging', 'condition_meshes') }}
-),
+    SELECT *
+    FROM {{ source('staging', 'condition_meshes') }}
+    {% if is_incremental() %}
+        WHERE mesh_key NOT IN (SELECT mesh_key FROM {{ this }})
+    {% endif %}
+    ),
 
-condition_meshes AS (
-    SELECT
-        mesh_key,
-        mesh_id,
-        mesh_term,
-        dag_execution_date,
-        dag_id,
-        dag_run_id,
-        first_loaded_on,
-        last_seen_on,
-        CURRENT_DATE AS dbt_created_on
-    FROM condition_meshes_source
-)
+    condition_meshes AS (
+        SELECT
+            mesh_key,
+            mesh_id,
+            mesh_term,
+            dag_execution_date,
+            dag_id,
+            dag_run_id,
+            CURRENT_DATE AS dbt_created_on
+        FROM condition_meshes_source
+    )
 
 SELECT * FROM condition_meshes

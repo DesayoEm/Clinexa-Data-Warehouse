@@ -17,20 +17,44 @@ WITH sponsors_source AS (
     {% if is_incremental() %}
         WHERE sponsor_key NOT IN (SELECT sponsor_key FROM {{ this }})
     {% endif %}
-),
+    ),
 
-sponsors AS (
-    SELECT
-        sponsor_key CHAR(16) PRIMARY KEY,
-        name TEXT,
-        sponsor_class TEXT,
-        dag_execution_date DATE,
-        dag_id VARCHAR(100),
-        dag_run_id VARCHAR(100),
-        first_loaded_on DATE,
-        last_seen_on DATE,
-        CURRENT_DATE as dbt_created_on
-    FROM sponsors_source
+    collaborators_source AS (
+    SELECT *
+    FROM {{ source('staging', 'collaborators') }}
+    {% if is_incremental() %}
+        WHERE collaborator_key NOT IN (SELECT collaborator_key FROM {{ this }})
+    {% endif %}
+    ),
+
+    sponsors AS (
+        SELECT
+            sponsor_key,
+            name,
+            sponsor_class,
+            dag_execution_date,
+            dag_id,
+            dag_run_id,
+            CURRENT_DATE as dbt_created_on
+        FROM sponsors_source
+    ),
+
+    collaborators AS (
+        SELECT
+            collaborator_key as sponsor_key,
+            name,
+            collaborator_class as sponsor_class,
+            dag_execution_date,
+            dag_id,
+            dag_run_id,
+            CURRENT_DATE AS dbt_created_on
+        FROM collaborators_source
+    ),
+
+    final AS(
+    SELECT * FROM sponsors
+    UNION
+    SELECT * FROM collaborators
 )
 
-SELECT * FROM sponsors
+SELECT * FROM final
