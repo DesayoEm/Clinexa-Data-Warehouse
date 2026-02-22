@@ -551,13 +551,13 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
     # interventions
     df_interventions = df_interventions.drop_duplicates(subset=["intervention_key"])
     df_intervention_aliases = df_intervention_aliases.drop_duplicates(
-        subset=["intervention_key"]
+        subset=["intervention_key", "intervention_alias_key"]
     )
     df_study_interventions = df_study_interventions.drop_duplicates(
         subset=["study_key", "intervention_key"]
     )
     df_study_intervention_aliases = df_study_intervention_aliases.drop_duplicates(
-        subset=["study_key", "intervention_key"]
+        subset=["study_key", "intervention_alias_key"]
     )
 
     # conditions and keywords

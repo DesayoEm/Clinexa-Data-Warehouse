@@ -23,7 +23,7 @@ WITH sponsors_source AS (
     SELECT *
     FROM {{ source('staging', 'collaborators') }}
     {% if is_incremental() %}
-        WHERE collaborator_key NOT IN (SELECT collaborator_key FROM {{ this }})
+        WHERE collaborator_key NOT IN (SELECT sponsor_key FROM {{ this }})
     {% endif %}
     ),
 

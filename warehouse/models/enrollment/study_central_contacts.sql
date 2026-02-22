@@ -13,17 +13,17 @@
 
 WITH study_central_contacts_source AS (
     SELECT * FROM {{ source('staging', 'study_central_contacts') }}
-),
+    ),
 
-study_central_contacts AS (
-    SELECT
-        study_key,
-        contact_key,
-        dag_execution_date,
-        dag_id,
-        dag_run_id,
-        CURRENT_DATE AS dbt_created_on
-    FROM study_central_contacts_source
-)
+    study_central_contacts AS (
+        SELECT
+            study_key,
+            contact_key,
+            dag_execution_date,
+            dag_id,
+            dag_run_id,
+            CURRENT_DATE AS dbt_created_on
+        FROM study_central_contacts_source
+    )
 
 SELECT * FROM study_central_contacts

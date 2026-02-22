@@ -1,9 +1,16 @@
+
 {{ config(
-    materialized='incremental',
-    schema = 'enrollment',
-    unique_key = ['study_key', 'location_key']
+    materialized='table',
+    schema = 'enrollment'
 ) }}
 
+
+-- Materialized as table 
+-- The relationship between a study and its locations can change -- locations can be added or removed
+-- over the course of a study. Since this is a junction table representing
+-- current study-location relationships, a full refresh ensures the API
+-- always reflects the current state. Incremental would risk retaining
+-- stale relationships that no longer exist at the source.
 
 
 
@@ -19,8 +26,6 @@ study_locations AS (
         dag_execution_date,
         dag_id,
         dag_run_id,
-        first_loaded_on,
-        last_seen_on,
         CURRENT_DATE AS dbt_created_on
     FROM study_locations_source
 )

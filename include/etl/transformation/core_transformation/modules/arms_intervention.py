@@ -177,10 +177,11 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
                     if other_name == main_name:
                         continue  # some studies put the main name in the list of other names
 
-                    other_intervention_key = generate_key(other_name)
+                    intervention_alias_key = generate_key(other_name)
                     intervention_aliases.append(
                         {
-                            "intervention_key": other_intervention_key,
+                            "intervention_alias_key": intervention_alias_key,
+                            "intervention_key": intervention_key,
                             # has its own key as other here could be main and vice versa in other studies.
                             # and it remains independent in the warehouse
                             "intervention_name": other_name,
@@ -191,7 +192,8 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
                     study_intervention_aliases.append(
                         {
                             "study_key": study_key,
-                            "intervention_key": other_intervention_key,
+                            "intervention_alias_key": intervention_alias_key,
+                            "intervention_key": intervention_key,
                             "description": intervention.get("description"),
                         }
                     )
