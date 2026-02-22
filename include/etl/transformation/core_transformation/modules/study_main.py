@@ -1,6 +1,22 @@
-from typing import Dict
+from typing import Dict, Tuple
 import pandas as pd
 from include.etl.transformation.config import SCALAR_FIELDS
+
+
+def extract_age(raw_age: str) -> Tuple:
+    # e.g format - 20 Years, 2 Months
+    age = raw_age.strip().replace(",", "")
+    split_age = age.split()
+
+    if len(split_age) == 2:
+        return int(split_age[0]), split_age[1]
+    elif len(split_age) == 1:
+        if split_age[0].isdigit():
+            return int(split_age[0]), "Unknown"
+        else:
+            return None, split_age[0]
+
+    return None, "Unknown"
 
 
 def transform_scalar_fields(study_key: str, study_data: pd.Series) -> Dict:
@@ -26,6 +42,15 @@ def transform_scalar_fields(study_key: str, study_data: pd.Series) -> Dict:
 
     study_record["study_key"] = study_key
     for entity_key in SCALAR_FIELDS:
+        if entity_key == "min_age":
+            study_record["min_age_value"], study_record["min_age_metric"] = extract_age(
+                study_data[entity_key]
+            )
+        if entity_key == "max_age":
+            study_record["max_age_value"], study_record["max_age_metric"] = extract_age(
+                study_data[entity_key]
+            )
+
         index_field = SCALAR_FIELDS.get(entity_key)
 
         study_record[entity_key] = study_data.get(index_field)

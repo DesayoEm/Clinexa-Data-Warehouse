@@ -1,6 +1,7 @@
 CREATE SCHEMA staging;
 CREATE SCHEMA dev;
-CREATE SCHEMA landscape_patient_matching;
+CREATE SCHEMA enrollment;
+CREATE SCHEMA landscape_analysis;
 CREATE SCHEMA outcome_analysis;
 
 -- ENUMS
@@ -236,14 +237,6 @@ CREATE TYPE BrowseLeafRelevance AS ENUM(
     'HIGH'
 );
 
-
-CREATE TYPE ContactRole AS ENUM(
-    'STUDY_CHAIR',
-    'STUDY_DIRECTOR',
-    'PRINCIPAL_INVESTIGATOR',
-    'SUB_INVESTIGATOR',
-    'CONTACT'
-);
 --- fixed character lengths are created using the registry docs as as a guide. TEXT for unreliable fields
 
 
@@ -287,8 +280,12 @@ CREATE TABLE IF NOT EXISTS staging.studies(
     eligibility_criteria TEXT,
     healthy_volunteers BOOLEAN,
     sex BioSex,
-    min_age VARCHAR(20),
-    max_age VARCHAR(20),
+    min_age_raw VARCHAR(20),
+    min_age_value INTEGER,
+    min_age_metric VARCHAR(20),
+    max_age_raw VARCHAR(20),
+    max_age_value INTEGER,
+    max_age_metric VARCHAR(20),
     population_desc TEXT,
     sampling_method SamplingMethod,
 
@@ -530,8 +527,7 @@ CREATE TABLE staging.arm_interventions (
 CREATE TABLE staging.study_interventions (
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     intervention_key CHAR(16) NOT NULL REFERENCES staging.interventions(intervention_key),
-    description TEXT, --study specific description
-    is_primary_name BOOLEAN,
+    description TEXT,
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -540,30 +536,34 @@ CREATE TABLE staging.study_interventions (
     PRIMARY KEY (study_key, intervention_key)
 );
 
--- Other Intervention Names (dimension table for aliases)
-CREATE TABLE staging.other_intervention_names (
-    intervention_key CHAR(16) PRIMARY KEY,
+-- Intervention aliases
+CREATE TABLE staging.intervention_aliases (
+    intervention_alias_key CHAR(16),
+    intervention_key CHAR(16) NOT NULL REFERENCES staging.interventions(intervention_key),
     intervention_name TEXT,
     intervention_type InterventionType,
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
     first_loaded_on DATE,
-    last_seen_on DATE 
+    last_seen_on DATE,
+    PRIMARY KEY (intervention_alias_key, intervention_key)
 );
 
 -- Study-Other Intervention Names 
 CREATE TABLE staging.study_intervention_aliases (
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
-    intervention_key CHAR(16) NOT NULL REFERENCES staging.other_intervention_names(intervention_key),
+    intervention_alias_key CHAR(16) NOT NULL,
+    intervention_key CHAR(16) NOT NULL,
     description TEXT,
-    is_primary_name BOOLEAN,
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
     first_loaded_on DATE,
     last_seen_on DATE,
-    PRIMARY KEY (study_key, intervention_key)
+    FOREIGN KEY (intervention_alias_key, intervention_key)
+        REFERENCES staging.intervention_aliases(intervention_alias_key, intervention_key),
+    PRIMARY KEY (study_key, intervention_alias_key, intervention_key)
 );
 
 -- Primary Outcomes
@@ -612,7 +612,7 @@ CREATE TABLE staging.other_outcomes (
 CREATE TABLE staging.central_contacts (
     contact_key CHAR(16) PRIMARY KEY,
     name TEXT,
-    role ContactRole,
+    role TEXT,
     phone VARCHAR(30),
     phone_ext VARCHAR(20),
     email TEXT,
@@ -656,7 +656,6 @@ CREATE TABLE staging.study_locations (
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     location_key CHAR(16) NOT NULL REFERENCES staging.locations(location_key),
     status RecruitmentStatus,
-    contacts TEXT,  -- contacts stored as TEXT as source JSON is usually broken. only for use by patient matching API
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -665,12 +664,32 @@ CREATE TABLE staging.study_locations (
     PRIMARY KEY (study_key, location_key)
 );
 
--- Indexes for patient matching queries
-CREATE INDEX idx_locations_country ON staging.locations(country);
-CREATE INDEX idx_locations_country_city ON staging.locations(country, city);
-CREATE INDEX idx_locations_geo ON staging.locations(lat, lon) WHERE lat IS NOT NULL AND lon IS NOT NULL;
-CREATE INDEX idx_study_locations_status ON staging.study_locations(status);
+CREATE TABLE staging.location_contacts (
+    contact_key CHAR(16) PRIMARY KEY,
+    name TEXT,
+    role TEXT,
+    phone TEXT,
+    phone_ext TEXT,
+    email TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    first_loaded_on DATE,
+    last_seen_on DATE
+    );
 
+
+CREATE TABLE staging.study_location_contacts (
+    study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
+    location_key CHAR(16) NOT NULL REFERENCES staging.locations(location_key),
+    contact_key CHAR(16) NOT NULL REFERENCES staging.location_contacts(contact_key),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    first_loaded_on DATE,
+    last_seen_on DATE,
+    PRIMARY KEY (study_key, location_key, contact_key)
+);
 
 -- Study References
 CREATE TABLE staging.study_references (
@@ -1071,7 +1090,7 @@ CREATE TABLE staging.violations (
 );
 
 -- Conditions MeSH 
-CREATE TABLE staging.conditions_mesh (
+CREATE TABLE staging.condition_meshes (
     mesh_key CHAR(16) PRIMARY KEY,
     mesh_id VARCHAR(20),
     mesh_term TEXT,
@@ -1083,8 +1102,8 @@ CREATE TABLE staging.conditions_mesh (
 );
 
 -- Study-Conditions MESH 
-CREATE TABLE staging.study_conditions_mesh (
-    mesh_key CHAR(16) NOT NULL REFERENCES staging.conditions_mesh(mesh_key),
+CREATE TABLE staging.study_condition_meshes (
+    mesh_key CHAR(16) NOT NULL REFERENCES staging.condition_meshes(mesh_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -1095,7 +1114,7 @@ CREATE TABLE staging.study_conditions_mesh (
 );
 
 -- Conditions MeSH Ancestors dimension table (parent terms in MeSH tree)
-CREATE TABLE staging.conditions_mesh_ancestors (
+CREATE TABLE staging.condition_mesh_ancestors (
     ancestor_key CHAR(16) PRIMARY KEY,
     ancestor_id VARCHAR(20),
     ancestor_term TEXT,
@@ -1108,8 +1127,8 @@ CREATE TABLE staging.conditions_mesh_ancestors (
 );
 
 -- Study-Conditions MeSH Ancestors 
-CREATE TABLE staging.study_conditions_mesh_ancestors (
-    ancestor_key CHAR(16) NOT NULL REFERENCES staging.conditions_mesh_ancestors(ancestor_key),
+CREATE TABLE staging.study_condition_mesh_ancestors (
+    ancestor_key CHAR(16) NOT NULL REFERENCES staging.condition_mesh_ancestors(ancestor_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -1120,7 +1139,7 @@ CREATE TABLE staging.study_conditions_mesh_ancestors (
 );
 
 -- Conditions Browse Leaves 
-CREATE TABLE staging.conditions_browse_leaves (
+CREATE TABLE staging.condition_browse_leaves (
     leaf_key CHAR(16) PRIMARY KEY,
     leaf_id VARCHAR(20),
     name TEXT,
@@ -1134,8 +1153,8 @@ CREATE TABLE staging.conditions_browse_leaves (
 );
 
 -- Study-Conditions Browse 
-CREATE TABLE staging.study_conditions_browse_leaves (
-    leaf_key CHAR(16) NOT NULL REFERENCES staging.conditions_browse_leaves(leaf_key),
+CREATE TABLE staging.study_condition_browse_leaves (
+    leaf_key CHAR(16) NOT NULL REFERENCES staging.condition_browse_leaves(leaf_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -1146,7 +1165,7 @@ CREATE TABLE staging.study_conditions_browse_leaves (
 );
 
 -- Conditions Browse Branches 
-CREATE TABLE staging.conditions_browse_branches (
+CREATE TABLE staging.condition_browse_branches (
     branch_key CHAR(16) PRIMARY KEY,
     abbrev TEXT,
     name TEXT,
@@ -1158,8 +1177,8 @@ CREATE TABLE staging.conditions_browse_branches (
 );
 
 -- Study-Conditions Browse Branches 
-CREATE TABLE staging.study_conditions_browse_branches (
-    branch_key CHAR(16) NOT NULL REFERENCES staging.conditions_browse_branches(branch_key),
+CREATE TABLE staging.study_condition_browse_branches (
+    branch_key CHAR(16) NOT NULL REFERENCES staging.condition_browse_branches(branch_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -1170,7 +1189,7 @@ CREATE TABLE staging.study_conditions_browse_branches (
 );
 
 -- Interventions MeSH 
-CREATE TABLE staging.interventions_mesh (
+CREATE TABLE staging.intervention_meshes (
     mesh_key CHAR(16) PRIMARY KEY,
     mesh_id VARCHAR(20),
     mesh_term TEXT,
@@ -1182,8 +1201,8 @@ CREATE TABLE staging.interventions_mesh (
 );
 
 -- Study-Interventions MESH 
-CREATE TABLE staging.study_interventions_mesh (
-    mesh_key CHAR(16) NOT NULL REFERENCES staging.interventions_mesh(mesh_key),
+CREATE TABLE staging.study_intervention_meshes (
+    mesh_key CHAR(16) NOT NULL REFERENCES staging.intervention_meshes(mesh_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -1193,8 +1212,8 @@ CREATE TABLE staging.study_interventions_mesh (
     PRIMARY KEY (mesh_key, study_key)
 );
 
--- Interventions MeSH Ancestors dimension table (parent terms in MeSH tree)
-CREATE TABLE staging.interventions_mesh_ancestors (
+-- Interventions MeSH Ancestors
+CREATE TABLE staging.intervention_mesh_ancestors (
     ancestor_key CHAR(16) PRIMARY KEY,
     ancestor_id VARCHAR(20),
     ancestor_term TEXT,
@@ -1207,8 +1226,8 @@ CREATE TABLE staging.interventions_mesh_ancestors (
 );
 
 -- Study-Interventions MeSH Ancestors 
-CREATE TABLE staging.study_interventions_mesh_ancestors (
-    ancestor_key CHAR(16) NOT NULL REFERENCES staging.interventions_mesh_ancestors(ancestor_key),
+CREATE TABLE staging.study_intervention_mesh_ancestors (
+    ancestor_key CHAR(16) NOT NULL REFERENCES staging.intervention_mesh_ancestors(ancestor_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -1219,7 +1238,7 @@ CREATE TABLE staging.study_interventions_mesh_ancestors (
 );
 
 -- Interventions Browse Leaves 
-CREATE TABLE staging.interventions_browse_leaves (
+CREATE TABLE staging.intervention_browse_leaves (
     leaf_key CHAR(16) PRIMARY KEY,
     leaf_id VARCHAR(20),
     name TEXT,
@@ -1233,8 +1252,8 @@ CREATE TABLE staging.interventions_browse_leaves (
 );
 
 -- Study-Interventions Browse 
-CREATE TABLE staging.study_interventions_browse_leaves (
-    leaf_key CHAR(16) NOT NULL REFERENCES staging.interventions_browse_leaves(leaf_key),
+CREATE TABLE staging.study_intervention_browse_leaves (
+    leaf_key CHAR(16) NOT NULL REFERENCES staging.intervention_browse_leaves(leaf_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -1245,7 +1264,7 @@ CREATE TABLE staging.study_interventions_browse_leaves (
 );
 
 -- Interventions Browse Branches 
-CREATE TABLE staging.interventions_browse_branches (
+CREATE TABLE staging.intervention_browse_branches (
     branch_key CHAR(16) PRIMARY KEY,
     abbrev TEXT,
     name TEXT,
@@ -1257,8 +1276,8 @@ CREATE TABLE staging.interventions_browse_branches (
 );
 
 -- Study-Interventions Browse Branches 
-CREATE TABLE staging.study_interventions_browse_branches (
-    branch_key CHAR(16) NOT NULL REFERENCES staging.interventions_browse_branches(branch_key),
+CREATE TABLE staging.study_intervention_browse_branches (
+    branch_key CHAR(16) NOT NULL REFERENCES staging.intervention_browse_branches(branch_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     dag_execution_date DATE,
     dag_id VARCHAR(100),
@@ -1268,3 +1287,333 @@ CREATE TABLE staging.study_interventions_browse_branches (
     PRIMARY KEY (branch_key, study_key)
 );
 
+
+
+--------------
+--- ENROLLMENT
+--------------
+
+CREATE TABLE IF NOT EXISTS enrollment.studies(
+    study_key CHAR(16) PRIMARY KEY,
+    nct_id VARCHAR(15) NOT NULL UNIQUE,
+    org_study_id VARCHAR(30),
+    brief_title VARCHAR(300),
+    official_title VARCHAR(600),
+    acronym VARCHAR(14),
+    brief_summary TEXT,
+    detailed_desc TEXT,
+    responsible_party_type ResponsiblePartyType,
+    study_type StudyType,
+    patient_registry BOOLEAN,
+    enrollment_type TEXT,
+    enrollment_count INTEGER,
+    design_allocation DesignAllocation,
+    design_intervention_model InterventionalAssignment,
+    design_intervention_model_desc TEXT,
+    design_primary_purpose PrimaryPurpose,
+    design_masking DesignMasking,
+    design_observational_model ObservationalModel,
+    design_time_perspective DesignTimePerspective,
+    biospec_retention BioSpecRetention,
+    biospec_desc TEXT,
+    eligibility_criteria TEXT,
+    healthy_volunteers BOOLEAN,
+    sex BioSex,
+    min_age VARCHAR(20),
+    max_age VARCHAR(20),
+    age_group VARCHAR (20),
+    population_desc TEXT,
+    overall_status Status,
+    is_active BOOLEAN,
+    last_known_status Status,
+    status_verified_date TEXT,
+    status_verified_date_parsed DATE,
+    start_date TEXT,
+    start_date_parsed DATE,
+    start_date_type DateType,
+    completion_date TEXT,
+    completion_date_parsed DATE,
+    completion_date_type DateType,
+    has_expanded_access BOOLEAN,
+    expanded_access_nct VARCHAR(15),
+    is_fda_regulated_drug BOOLEAN,
+    is_fda_regulated_device BOOLEAN,
+    is_unapproved_device BOOLEAN,
+    is_us_export BOOLEAN,
+    poc_title TEXT,
+    poc_organization TEXT,
+    poc_email TEXT,
+    poc_phone TEXT,
+    poc_phone_ext TEXT,
+    last_updated DATE,
+    -- Audit
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    first_loaded_on DATE,
+    last_seen_on DATE,
+    dbt_created_on DATE
+);
+
+
+-- Secondary IDs
+CREATE TABLE enrollment.secondary_ids (
+    secondary_id_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL REFERENCES enrollment.studies(study_key),
+    id VARCHAR(30),
+    type TEXT,
+    domain TEXT,
+    link TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    dbt_created_on DATE
+);
+
+-- NCT Aliases
+CREATE TABLE enrollment.nct_aliases (
+    id_alias_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16) NOT NULL REFERENCES enrollment.studies(study_key),
+    id_alias VARCHAR(15) NOT NULL,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    dbt_created_on DATE
+);
+
+-- Lead Sponsor
+CREATE TABLE enrollment.sponsors (
+    sponsor_key CHAR(16) PRIMARY KEY,
+    name TEXT,
+    sponsor_class TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    dbt_created_on DATE
+);
+
+-- Study-Sponsor
+CREATE TABLE enrollment.study_sponsors (
+    study_key CHAR(16) NOT NULL REFERENCES enrollment.studies(study_key),
+    sponsor_key CHAR(16) NOT NULL REFERENCES enrollment.sponsors(sponsor_key), -- collaborators will be flattened into sponsors
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    PRIMARY KEY (study_key, sponsor_key),
+    dbt_created_on DATE
+);
+
+-- Study-Collaborator
+CREATE TABLE enrollment.study_collaborators (
+    study_key CHAR(16) NOT NULL REFERENCES enrollment.studies(study_key),
+    collaborator_key CHAR(16) NOT NULL REFERENCES enrollment.sponsors(sponsor_key),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    PRIMARY KEY (study_key, collaborator_key)
+);
+
+-- Conditions
+CREATE TABLE enrollment.conditions (
+    condition_key CHAR(16) PRIMARY KEY,
+    condition_name TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    first_loaded_on DATE,
+    dbt_created_on DATE
+);
+
+-- Study-Condition
+CREATE TABLE enrollment.study_conditions (
+    study_key CHAR(16) NOT NULL REFERENCES enrollment.studies(study_key),
+    condition_key CHAR(16) NOT NULL REFERENCES enrollment.conditions(condition_key),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    dbt_created_on DATE,
+    PRIMARY KEY (study_key, condition_key)
+);
+
+-- Keywords
+CREATE TABLE enrollment.keywords (
+    keyword_key CHAR(16) PRIMARY KEY,
+    keyword_name TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    dbt_created_on DATE
+);
+
+-- Study-Keyword
+CREATE TABLE enrollment.study_keywords (
+    study_key CHAR(16) NOT NULL REFERENCES enrollment.studies(study_key),
+    keyword_key CHAR(16) NOT NULL REFERENCES enrollment.keywords(keyword_key),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    dbt_created_on DATE,
+    PRIMARY KEY (study_key, keyword_key)
+);
+
+
+-- Interventions
+CREATE TABLE enrollment.interventions (
+    intervention_key CHAR(16) PRIMARY KEY,
+    intervention_name TEXT,
+    intervention_type InterventionType,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    dbt_created_on DATE
+);
+
+-- Intervention aliases
+CREATE TABLE enrollment.intervention_aliases (
+    intervention_alias_key CHAR(16),
+    intervention_key CHAR(16) NOT NULL REFERENCES staging.interventions(intervention_key),
+    intervention_name TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    PRIMARY KEY (intervention_alias_key, intervention_key)
+);
+
+-- Study-Interventions
+CREATE TABLE enrollment.study_interventions (
+    study_key CHAR(16) NOT NULL REFERENCES enrollment.studies(study_key),
+    intervention_key CHAR(16) NOT NULL REFERENCES enrollment.interventions(intervention_key),
+    description TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    dbt_created_on DATE,
+    PRIMARY KEY (study_key, intervention_key)
+);
+
+
+-- Study-Other Intervention Names
+CREATE TABLE enrollment.study_intervention_aliases (
+    study_key CHAR(16) NOT NULL REFERENCES enrollment.studies(study_key),
+    intervention_key CHAR(16) NOT NULL REFERENCES enrollment.interventions(intervention_key),
+    description TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    first_loaded_on DATE,
+    PRIMARY KEY (study_key, intervention_key)
+);
+
+-- Central Contacts
+CREATE TABLE enrollment.contacts (
+    contact_key CHAR(16) PRIMARY KEY,
+    name TEXT,
+    role TEXT,
+    phone VARCHAR(30),
+    phone_ext VARCHAR(20),
+    email TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    dbt_created_on DATE
+);
+
+-- Locations
+CREATE TABLE enrollment.locations (
+    location_key CHAR(16) PRIMARY KEY,
+    facility TEXT,
+    city VARCHAR(100),
+    state VARCHAR(100),
+    country VARCHAR(100),
+    lat DECIMAL(9,6),
+    lon DECIMAL(9,6),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    dbt_created_on DATE
+);
+
+
+-- Study-Locations
+CREATE TABLE enrollment.study_locations (
+    study_key CHAR(16) NOT NULL REFERENCES enrollment.studies(study_key),
+    location_key CHAR(16) NOT NULL REFERENCES enrollment.locations(location_key),
+    status RecruitmentStatus,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    dbt_created_on DATE,
+    PRIMARY KEY (study_key, location_key)
+);
+
+
+-- Study-Central Contacts
+CREATE TABLE enrollment.study_central_contacts (
+    study_key CHAR(16) NOT NULL REFERENCES enrollment.studies(study_key),
+    contact_key CHAR(16) NOT NULL REFERENCES enrollment.contacts(contact_key),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    dbt_created_on DATE,
+    PRIMARY KEY (study_key, contact_key)
+);
+
+CREATE TABLE enrollment.study_location_contacts (
+    study_key CHAR(16) NOT NULL REFERENCES enrollment.studies(study_key),
+    location_key CHAR(16) NOT NULL REFERENCES enrollment.locations(location_key),
+    contact_key CHAR(16) NOT NULL REFERENCES enrollment.contacts(contact_key),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    dbt_created_on DATE,
+    PRIMARY KEY (study_key, location_key, contact_key)
+);
+
+
+
+-- Conditions browse
+CREATE TABLE enrollment.condition_browse (
+    term_key CHAR(16) PRIMARY KEY,
+    term_id VARCHAR(20),
+    mesh TEXT,
+    abbreviation TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    dbt_created_on DATE
+);
+
+-- Study-Conditions browse
+CREATE TABLE enrollment.study_condition_browse (
+    mesh_key CHAR(16) NOT NULL REFERENCES enrollment.condition_browse(term_key),
+    study_key CHAR(16) NOT NULL REFERENCES enrollment.studies(study_key),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    dbt_created_on DATE,
+    PRIMARY KEY (mesh_key, study_key)
+);
+
+
+-- Interventions browse
+CREATE TABLE enrollment.intervention_browse (
+    term_key CHAR(16) PRIMARY KEY,
+    term_id VARCHAR(20),
+    term TEXT,
+    abbreviation TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    dbt_created_on DATE
+);
+
+-- Study-Interventions browse
+CREATE TABLE enrollment.study_intervention_browse (
+    term_key CHAR(16) NOT NULL REFERENCES enrollment.intervention_browse(term_key),
+    study_key CHAR(16) NOT NULL REFERENCES enrollment.studies(study_key),
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    dbt_created_on DATE,
+    PRIMARY KEY (term_key, study_key)
+);

@@ -1,9 +1,8 @@
+import sys
 import pytest
 from unittest.mock import MagicMock
-import sys
-from unittest.mock import MagicMock
 
-from tests.unit.transformation.fixtures import (
+from .transformation.fixtures import (
     study_key,
     full_study_data,
     minimal_study_data,
@@ -15,7 +14,7 @@ from tests.unit.transformation.fixtures import (
 )
 
 
-from tests.unit.extraction.fixtures import (
+from .extraction.fixtures import (
     mock_context,
     mock_context_retry,
     mock_s3_hook,

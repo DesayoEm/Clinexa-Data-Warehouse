@@ -29,8 +29,8 @@ SCALAR_FIELDS = {
     "eligibility_criteria": "protocolSection.eligibilityModule.eligibilityCriteria",
     "healthy_volunteers": "protocolSection.eligibilityModule.healthyVolunteers",
     "sex": "protocolSection.eligibilityModule.sex",
-    "min_age": "protocolSection.eligibilityModule.minimumAge",
-    "max_age": "protocolSection.eligibilityModule.maximumAge",
+    "min_age_raw": "protocolSection.eligibilityModule.minimumAge",
+    "max_age_raw": "protocolSection.eligibilityModule.maximumAge",
     "population_desc": "protocolSection.eligibilityModule.studyPopulation",
     "sampling_method": "protocolSection.eligibilityModule.samplingMethod",
     # Status

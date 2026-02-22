@@ -174,14 +174,14 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
         arm_interventions,
         interventions,
         study_interventions,
-        other_intervention_names,
+        intervention_aliases,
         study_intervention_aliases,
     ) = transform_arms_interventions_module(study_key, study)
     result["arm_groups"].extend(arm_groups)
     result["arm_interventions"].extend(arm_interventions)
     result["interventions"].extend(interventions)
     result["study_interventions"].extend(study_interventions)
-    result["other_intervention_names"].extend(other_intervention_names)
+    result["intervention_aliases"].extend(intervention_aliases)
     result["study_intervention_aliases"].extend(study_intervention_aliases)
 
     # outcomesModule
@@ -193,13 +193,20 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
     result["other_outcomes"].extend(other_outcomes)
 
     # contactsLocationsModule
-    central_contacts, study_central_contacts, locations, study_locations = (
-        transform_contacts_location_module(study_key, study)
-    )
+    (
+        central_contacts,
+        study_central_contacts,
+        locations,
+        study_locations,
+        location_contacts,
+        study_location_contacts,
+    ) = transform_contacts_location_module(study_key, study)
     result["central_contacts"].extend(central_contacts)
     result["study_central_contacts"].extend(study_central_contacts)
     result["locations"].extend(locations)
     result["study_locations"].extend(study_locations)
+    result["location_contacts"].extend(location_contacts)
+    result["study_location_contacts"].extend(study_location_contacts)
 
     # referencesModule
     study_references, link_references, ipd_references = transform_reference_module(
@@ -271,50 +278,48 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
 
     # conditionBrowseModule
     (
-        conditions_mesh,
-        study_conditions_mesh,
-        conditions_mesh_ancestors,
-        study_conditions_mesh_ancestors,
-        conditions_browse_leaves,
-        study_conditions_browse_leaves,
-        conditions_browse_branches,
-        study_conditions_browse_branches,
+        condition_meshes,
+        study_condition_meshes,
+        condition_mesh_ancestors,
+        study_condition_mesh_ancestors,
+        condition_browse_leaves,
+        study_condition_browse_leaves,
+        condition_browse_branches,
+        study_condition_browse_branches,
     ) = transform_conditions_browse_module(study_key, study)
 
-    result["conditions_mesh"].extend(conditions_mesh)
-    result["study_conditions_mesh"].extend(study_conditions_mesh)
-    result["conditions_mesh_ancestors"].extend(conditions_mesh_ancestors)
-    result["study_conditions_mesh_ancestors"].extend(study_conditions_mesh_ancestors)
-    result["conditions_browse_leaves"].extend(conditions_browse_leaves)
-    result["study_conditions_browse_leaves"].extend(study_conditions_browse_leaves)
-    result["conditions_browse_branches"].extend(conditions_browse_branches)
-    result["study_conditions_browse_branches"].extend(study_conditions_browse_branches)
+    result["condition_meshes"].extend(condition_meshes)
+    result["study_condition_meshes.sql"].extend(study_condition_meshes)
+    result["condition_mesh_ancestors"].extend(condition_mesh_ancestors)
+    result["study_condition_mesh_ancestors"].extend(study_condition_mesh_ancestors)
+    result["condition_browse_leaves"].extend(condition_browse_leaves)
+    result["study_condition_browse_leaves"].extend(study_condition_browse_leaves)
+    result["condition_browse_branches"].extend(condition_browse_branches)
+    result["study_condition_browse_branches"].extend(study_condition_browse_branches)
 
     # interventionBrowseModule
     (
-        interventions_mesh,
-        study_interventions_mesh,
-        interventions_mesh_ancestors,
-        study_interventions_mesh_ancestors,
-        interventions_browse_leaves,
-        study_interventions_browse_leaves,
-        interventions_browse_branches,
-        study_interventions_browse_branches,
+        intervention_meshes,
+        study_intervention_meshes,
+        intervention_mesh_ancestors,
+        study_intervention_mesh_ancestors,
+        intervention_browse_leaves,
+        study_intervention_browse_leaves,
+        intervention_browse_branches,
+        study_intervention_browse_branches,
     ) = transform_interventions_browse_module(study_key, study)
 
-    result["interventions_mesh"].extend(interventions_mesh)
-    result["study_interventions_mesh"].extend(study_interventions_mesh)
-    result["interventions_mesh_ancestors"].extend(interventions_mesh_ancestors)
-    result["study_interventions_mesh_ancestors"].extend(
-        study_interventions_mesh_ancestors
+    result["intervention_meshes"].extend(intervention_meshes)
+    result["study_intervention_meshes"].extend(study_intervention_meshes)
+    result["intervention_mesh_ancestors"].extend(intervention_mesh_ancestors)
+    result["study_intervention_mesh_ancestors"].extend(
+        study_intervention_mesh_ancestors
     )
-    result["interventions_browse_leaves"].extend(interventions_browse_leaves)
-    result["study_interventions_browse_leaves"].extend(
-        study_interventions_browse_leaves
-    )
-    result["interventions_browse_branches"].extend(interventions_browse_branches)
-    result["study_interventions_browse_branches"].extend(
-        study_interventions_browse_branches
+    result["intervention_browse_leaves"].extend(intervention_browse_leaves)
+    result["study_intervention_browse_leaves"].extend(study_intervention_browse_leaves)
+    result["intervention_browse_branches"].extend(intervention_browse_branches)
+    result["study_intervention_browse_branches"].extend(
+        study_intervention_browse_branches
     )
 
     return StudyResult(
@@ -333,7 +338,7 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
         arm_interventions=result["arm_interventions"],
         interventions=result["interventions"],
         study_interventions=result["study_interventions"],
-        other_intervention_names=result["other_intervention_names"],
+        intervention_aliases=result["intervention_aliases"],
         study_intervention_aliases=result["study_intervention_aliases"],
         primary_outcomes=result["primary_outcomes"],
         secondary_outcomes=result["secondary_outcomes"],
@@ -342,6 +347,8 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
         study_central_contacts=result["study_central_contacts"],
         locations=result["locations"],
         study_locations=result["study_locations"],
+        location_contacts=result["location_contacts"],
+        study_location_contacts=result["study_location_contacts"],
         study_references=result["study_references"],
         link_references=result["link_references"],
         ipd_references=result["ipd_references"],
@@ -366,24 +373,22 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
         other_events=result["other_events"],
         other_event_stats=result["other_event_stats"],
         violations=result["violations"],
-        conditions_mesh=result["conditions_mesh"],
-        study_conditions_mesh=result["study_conditions_mesh"],
-        conditions_mesh_ancestors=result["conditions_mesh_ancestors"],
-        study_conditions_mesh_ancestors=result["study_conditions_mesh_ancestors"],
-        conditions_browse_leaves=result["conditions_browse_leaves"],
-        study_conditions_browse_leaves=result["study_conditions_browse_leaves"],
-        conditions_browse_branches=result["conditions_browse_branches"],
-        study_conditions_browse_branches=result["study_conditions_browse_branches"],
-        interventions_mesh=result["interventions_mesh"],
-        study_interventions_mesh=result["study_interventions_mesh"],
-        interventions_mesh_ancestors=result["interventions_mesh_ancestors"],
-        study_interventions_mesh_ancestors=result["study_interventions_mesh_ancestors"],
-        interventions_browse_leaves=result["interventions_browse_leaves"],
-        study_interventions_browse_leaves=result["study_interventions_browse_leaves"],
-        interventions_browse_branches=result["interventions_browse_branches"],
-        study_interventions_browse_branches=result[
-            "study_interventions_browse_branches"
-        ],
+        condition_meshes=result["condition_meshes"],
+        study_condition_meshes=result["study_condition_meshes.sql"],
+        condition_mesh_ancestors=result["condition_mesh_ancestors"],
+        study_condition_mesh_ancestors=result["study_condition_mesh_ancestors"],
+        condition_browse_leaves=result["condition_browse_leaves"],
+        study_condition_browse_leaves=result["study_condition_browse_leaves"],
+        condition_browse_branches=result["condition_browse_branches"],
+        study_condition_browse_branches=result["study_condition_browse_branches"],
+        intervention_meshes=result["intervention_meshes"],
+        study_intervention_meshes=result["study_intervention_meshes"],
+        intervention_mesh_ancestors=result["intervention_mesh_ancestors"],
+        study_intervention_mesh_ancestors=result["study_intervention_mesh_ancestors"],
+        intervention_browse_leaves=result["intervention_browse_leaves"],
+        study_intervention_browse_leaves=result["study_intervention_browse_leaves"],
+        intervention_browse_branches=result["intervention_browse_branches"],
+        study_intervention_browse_branches=result["study_intervention_browse_branches"],
     )
 
 
@@ -429,7 +434,7 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
     df_arm_interventions = pd.DataFrame(results["arm_interventions"])
     df_interventions = pd.DataFrame(results["interventions"])
     df_study_interventions = pd.DataFrame(results["study_interventions"])
-    df_other_intervention_names = pd.DataFrame(results["other_intervention_names"])
+    df_intervention_aliases = pd.DataFrame(results["intervention_aliases"])
     df_study_intervention_aliases = pd.DataFrame(results["study_intervention_aliases"])
 
     # outcomesModule
@@ -442,6 +447,8 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
     df_study_central_contacts = pd.DataFrame(results["study_central_contacts"])
     df_locations = pd.DataFrame(results["locations"])
     df_study_locations = pd.DataFrame(results["study_locations"])
+    df_location_contacts = pd.DataFrame(results["location_contacts"])
+    df_study_location_contacts = pd.DataFrame(results["study_location_contacts"])
 
     # referencesModule
     df_study_references = pd.DataFrame(results["study_references"])
@@ -490,41 +497,39 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
     df_violations = pd.DataFrame(results["violations"])
 
     # conditionBrowseModule
-    df_conditions_mesh = pd.DataFrame(results["conditions_mesh"])
-    df_study_conditions_mesh = pd.DataFrame(results["study_conditions_mesh"])
-    df_conditions_mesh_ancestors = pd.DataFrame(results["conditions_mesh_ancestors"])
-    df_study_conditions_mesh_ancestors = pd.DataFrame(
-        results["study_conditions_mesh_ancestors"]
+    df_condition_meshes = pd.DataFrame(results["condition_meshes"])
+    df_study_condition_meshes = pd.DataFrame(results["study_condition_meshes.sql"])
+    df_condition_mesh_ancestors = pd.DataFrame(results["condition_mesh_ancestors"])
+    df_study_condition_mesh_ancestors = pd.DataFrame(
+        results["study_condition_mesh_ancestors"]
     )
-    df_conditions_browse_leaves = pd.DataFrame(results["conditions_browse_leaves"])
-    df_study_conditions_browse_leaves = pd.DataFrame(
-        results["study_conditions_browse_leaves"]
+    df_condition_browse_leaves = pd.DataFrame(results["condition_browse_leaves"])
+    df_study_condition_browse_leaves = pd.DataFrame(
+        results["study_condition_browse_leaves"]
     )
-    df_conditions_browse_branches = pd.DataFrame(results["conditions_browse_branches"])
-    df_study_conditions_browse_branches = pd.DataFrame(
-        results["study_conditions_browse_branches"]
+    df_condition_browse_branches = pd.DataFrame(results["condition_browse_branches"])
+    df_study_condition_browse_branches = pd.DataFrame(
+        results["study_condition_browse_branches"]
     )
 
     # interventionBrowseModule
-    df_interventions_mesh = pd.DataFrame(results["interventions_mesh"])
-    df_study_interventions_mesh = pd.DataFrame(results["study_interventions_mesh"])
-    df_interventions_mesh_ancestors = pd.DataFrame(
-        results["interventions_mesh_ancestors"]
+    df_intervention_meshes = pd.DataFrame(results["intervention_meshes"])
+    df_study_intervention_meshes = pd.DataFrame(results["study_intervention_meshes"])
+    df_intervention_mesh_ancestors = pd.DataFrame(
+        results["intervention_mesh_ancestors"]
     )
-    df_study_interventions_mesh_ancestors = pd.DataFrame(
-        results["study_interventions_mesh_ancestors"]
+    df_study_intervention_mesh_ancestors = pd.DataFrame(
+        results["study_intervention_mesh_ancestors"]
     )
-    df_interventions_browse_leaves = pd.DataFrame(
-        results["interventions_browse_leaves"]
+    df_intervention_browse_leaves = pd.DataFrame(results["intervention_browse_leaves"])
+    df_study_intervention_browse_leaves = pd.DataFrame(
+        results["study_intervention_browse_leaves"]
     )
-    df_study_interventions_browse_leaves = pd.DataFrame(
-        results["study_interventions_browse_leaves"]
+    df_intervention_browse_branches = pd.DataFrame(
+        results["intervention_browse_branches"]
     )
-    df_interventions_browse_branches = pd.DataFrame(
-        results["interventions_browse_branches"]
-    )
-    df_study_interventions_browse_branches = pd.DataFrame(
-        results["study_interventions_browse_branches"]
+    df_study_intervention_browse_branches = pd.DataFrame(
+        results["study_intervention_browse_branches"]
     )
 
     # dedupe
@@ -545,14 +550,14 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
 
     # interventions
     df_interventions = df_interventions.drop_duplicates(subset=["intervention_key"])
-    df_other_intervention_names = df_other_intervention_names.drop_duplicates(
-        subset=["intervention_key"]
+    df_intervention_aliases = df_intervention_aliases.drop_duplicates(
+        subset=["intervention_key", "intervention_alias_key"]
     )
     df_study_interventions = df_study_interventions.drop_duplicates(
         subset=["study_key", "intervention_key"]
     )
     df_study_intervention_aliases = df_study_intervention_aliases.drop_duplicates(
-        subset=["study_key", "intervention_key"]
+        subset=["study_key", "intervention_alias_key"]
     )
 
     # conditions and keywords
@@ -573,6 +578,11 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
     df_locations = df_locations.drop_duplicates(subset=["location_key"])
     df_study_locations = df_study_locations.drop_duplicates(
         subset=["study_key", "location_key"]
+    )
+    df_location_contacts = df_location_contacts.drop_duplicates(subset=["contact_key"])
+
+    df_study_location_contacts = df_study_location_contacts.drop_duplicates(
+        subset=["study_key", "contact_key"]
     )
 
     # arm interventions
@@ -650,60 +660,58 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
     )
 
     # conditions browse
-    df_conditions_mesh = df_conditions_mesh.drop_duplicates(subset=["mesh_key"])
-    df_study_conditions_mesh = df_study_conditions_mesh.drop_duplicates(
+    df_condition_meshes = df_condition_meshes.drop_duplicates(subset=["mesh_key"])
+    df_study_condition_meshes = df_study_condition_meshes.drop_duplicates(
         subset=["mesh_key", "study_key"]
     )
-    df_conditions_mesh_ancestors = df_conditions_mesh_ancestors.drop_duplicates(
+    df_condition_mesh_ancestors = df_condition_mesh_ancestors.drop_duplicates(
         subset=["ancestor_key"]
     )
-    df_study_conditions_mesh_ancestors = (
-        df_study_conditions_mesh_ancestors.drop_duplicates(
+    df_study_condition_mesh_ancestors = (
+        df_study_condition_mesh_ancestors.drop_duplicates(
             subset=["ancestor_key", "study_key"]
         )
     )
-    df_conditions_browse_leaves = df_conditions_browse_leaves.drop_duplicates(
+    df_condition_browse_leaves = df_condition_browse_leaves.drop_duplicates(
         subset=["leaf_key"]
     )
-    df_study_conditions_browse_leaves = (
-        df_study_conditions_browse_leaves.drop_duplicates(
-            subset=["leaf_key", "study_key"]
-        )
+    df_study_condition_browse_leaves = df_study_condition_browse_leaves.drop_duplicates(
+        subset=["leaf_key", "study_key"]
     )
-    df_conditions_browse_branches = df_conditions_browse_branches.drop_duplicates(
+    df_condition_browse_branches = df_condition_browse_branches.drop_duplicates(
         subset=["branch_key"]
     )
-    df_study_conditions_browse_branches = (
-        df_study_conditions_browse_branches.drop_duplicates(
+    df_study_condition_browse_branches = (
+        df_study_condition_browse_branches.drop_duplicates(
             subset=["branch_key", "study_key"]
         )
     )
     # interventions browse
-    df_interventions_mesh = df_interventions_mesh.drop_duplicates(subset=["mesh_key"])
-    df_study_interventions_mesh = df_study_interventions_mesh.drop_duplicates(
+    df_intervention_meshes = df_intervention_meshes.drop_duplicates(subset=["mesh_key"])
+    df_study_intervention_meshes = df_study_intervention_meshes.drop_duplicates(
         subset=["mesh_key", "study_key"]
     )
-    df_interventions_mesh_ancestors = df_interventions_mesh_ancestors.drop_duplicates(
+    df_intervention_mesh_ancestors = df_intervention_mesh_ancestors.drop_duplicates(
         subset=["ancestor_key"]
     )
-    df_study_interventions_mesh_ancestors = (
-        df_study_interventions_mesh_ancestors.drop_duplicates(
+    df_study_intervention_mesh_ancestors = (
+        df_study_intervention_mesh_ancestors.drop_duplicates(
             subset=["ancestor_key", "study_key"]
         )
     )
-    df_interventions_browse_leaves = df_interventions_browse_leaves.drop_duplicates(
+    df_intervention_browse_leaves = df_intervention_browse_leaves.drop_duplicates(
         subset=["leaf_key"]
     )
-    df_study_interventions_browse_leaves = (
-        df_study_interventions_browse_leaves.drop_duplicates(
+    df_study_intervention_browse_leaves = (
+        df_study_intervention_browse_leaves.drop_duplicates(
             subset=["leaf_key", "study_key"]
         )
     )
-    df_interventions_browse_branches = df_interventions_browse_branches.drop_duplicates(
+    df_intervention_browse_branches = df_intervention_browse_branches.drop_duplicates(
         subset=["branch_key"]
     )
-    df_study_interventions_browse_branches = (
-        df_study_interventions_browse_branches.drop_duplicates(
+    df_study_intervention_browse_branches = (
+        df_study_intervention_browse_branches.drop_duplicates(
             subset=["branch_key", "study_key"]
         )
     )
@@ -726,7 +734,7 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
         "arm_interventions": df_arm_interventions,
         "interventions": df_interventions,
         "study_interventions": df_study_interventions,
-        "other_intervention_names": df_other_intervention_names,
+        "intervention_aliases": df_intervention_aliases,
         "study_intervention_aliases": df_study_intervention_aliases,
         "primary_outcomes": df_primary_outcomes,
         "secondary_outcomes": df_secondary_outcomes,
@@ -735,6 +743,8 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
         "study_central_contacts": df_study_central_contacts,
         "locations": df_locations,
         "study_locations": df_study_locations,
+        "location_contacts": df_location_contacts,
+        "study_location_contacts": df_study_location_contacts,
         "study_references": df_study_references,
         "link_references": df_link_references,
         "ipd_references": df_ipd_references,
@@ -759,20 +769,20 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
         "other_events": df_other_events,
         "other_event_stats": df_other_event_stats,
         "violations": df_violations,
-        "conditions_mesh": df_conditions_mesh,
-        "study_conditions_mesh": df_study_conditions_mesh,
-        "conditions_mesh_ancestors": df_conditions_mesh_ancestors,
-        "study_conditions_mesh_ancestors": df_study_conditions_mesh_ancestors,
-        "conditions_browse_leaves": df_conditions_browse_leaves,
-        "study_conditions_browse_leaves": df_study_conditions_browse_leaves,
-        "conditions_browse_branches": df_conditions_browse_branches,
-        "study_conditions_browse_branches": df_study_conditions_browse_branches,
-        "interventions_mesh": df_interventions_mesh,
-        "study_interventions_mesh": df_study_interventions_mesh,
-        "interventions_mesh_ancestors": df_interventions_mesh_ancestors,
-        "study_interventions_mesh_ancestors": df_study_interventions_mesh_ancestors,
-        "interventions_browse_leaves": df_interventions_browse_leaves,
-        "study_interventions_browse_leaves": df_study_interventions_browse_leaves,
-        "interventions_browse_branches": df_interventions_browse_branches,
-        "study_interventions_browse_branches": df_study_interventions_browse_branches,
+        "condition_meshes": df_condition_meshes,
+        "study_condition_meshes.sql": df_study_condition_meshes,
+        "condition_mesh_ancestors": df_condition_mesh_ancestors,
+        "study_condition_mesh_ancestors": df_study_condition_mesh_ancestors,
+        "condition_browse_leaves": df_condition_browse_leaves,
+        "study_condition_browse_leaves": df_study_condition_browse_leaves,
+        "condition_browse_branches": df_condition_browse_branches,
+        "study_condition_browse_branches": df_study_condition_browse_branches,
+        "intervention_meshes": df_intervention_meshes,
+        "study_intervention_meshes": df_study_intervention_meshes,
+        "intervention_mesh_ancestors": df_intervention_mesh_ancestors,
+        "study_intervention_mesh_ancestors": df_study_intervention_mesh_ancestors,
+        "intervention_browse_leaves": df_intervention_browse_leaves,
+        "study_intervention_browse_leaves": df_study_intervention_browse_leaves,
+        "interventions_brows_branches": df_intervention_browse_branches,
+        "study_interventions_brows_branches": df_study_intervention_browse_branches,
     }

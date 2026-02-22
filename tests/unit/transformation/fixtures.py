@@ -156,7 +156,20 @@ def full_study_data():
                     "status": "RECRUITING",
                     "geoPoint": {"lat": 42.3601, "lon": -71.0589},
                     "contacts": [
-                        {"name": "Site Coordinator", "email": "coord@hospital.com"}
+                        {
+                            "name": "Dr. Olusola",
+                            "role": "Coordinator",
+                            "phone": "90909090",
+                            "phoneExt": "+234",
+                            "email": "olusola@hospital.com",
+                        },
+                        {
+                            "name": "Dr. Vishal",
+                            "role": "Coordinator",
+                            "phone": "90908080",
+                            "phone_ext": "+234",
+                            "email": "vish@hospital.com",
+                        },
                     ],
                 },
             ],

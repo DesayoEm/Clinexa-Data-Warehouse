@@ -27,7 +27,7 @@ class StudyResult:
     arm_interventions: List
     interventions: List
     study_interventions: List
-    other_intervention_names: List
+    intervention_aliases: List
     study_intervention_aliases: List
     primary_outcomes: List
     secondary_outcomes: List
@@ -36,6 +36,8 @@ class StudyResult:
     study_central_contacts: List
     locations: List
     study_locations: List
+    location_contacts: List
+    study_location_contacts: List
     study_references: List
     link_references: List
     ipd_references: List
@@ -60,22 +62,22 @@ class StudyResult:
     other_events: List
     other_event_stats: List
     violations: List
-    conditions_mesh: List
-    study_conditions_mesh: List
-    conditions_mesh_ancestors: List
-    study_conditions_mesh_ancestors: List
-    conditions_browse_leaves: List
-    study_conditions_browse_leaves: List
-    conditions_browse_branches: List
-    study_conditions_browse_branches: List
-    interventions_mesh: List
-    study_interventions_mesh: List
-    interventions_mesh_ancestors: List
-    study_interventions_mesh_ancestors: List
-    interventions_browse_leaves: List
-    study_interventions_browse_leaves: List
-    interventions_browse_branches: List
-    study_interventions_browse_branches: List
+    condition_meshes: List
+    study_condition_meshes: List
+    condition_mesh_ancestors: List
+    study_condition_mesh_ancestors: List
+    condition_browse_leaves: List
+    study_condition_browse_leaves: List
+    condition_browse_branches: List
+    study_condition_browse_branches: List
+    intervention_meshes: List
+    study_intervention_meshes: List
+    intervention_mesh_ancestors: List
+    study_intervention_mesh_ancestors: List
+    intervention_browse_leaves: List
+    study_intervention_browse_leaves: List
+    intervention_browse_branches: List
+    study_intervention_browse_branches: List
 
     def tables(self) -> Dict[str, List[Dict]]:
         return asdict(self)

@@ -79,7 +79,7 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
             - arm_interventions: Bridge table linking arms to intervention names
             - interventions: Primary intervention dimension records
             - study_interventions: Bridge table for primary interventions
-            - other_intervention_names: Alternate name intervention records
+            - intervention_aliases: Alternate name intervention records
             - study_intervention_aliases: Bridge table for alternate names
 
 
@@ -91,7 +91,7 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
 
     interventions = []
     study_interventions = []
-    other_intervention_names = []
+    intervention_aliases = []
     study_intervention_aliases = []
 
     arms_interventions_index = NON_SCALAR_FIELDS["arms_interventions"]["index_field"]
@@ -166,7 +166,6 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
                     "description": intervention.get(
                         "description"
                     ),  # study specific description
-                    "is_primary_name": True,
                 }
             )
 
@@ -178,10 +177,11 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
                     if other_name == main_name:
                         continue  # some studies put the main name in the list of other names
 
-                    other_intervention_key = generate_key(other_name)
-                    other_intervention_names.append(
+                    intervention_alias_key = generate_key(other_name)
+                    intervention_aliases.append(
                         {
-                            "intervention_key": other_intervention_key,
+                            "intervention_alias_key": intervention_alias_key,
+                            "intervention_key": intervention_key,
                             # has its own key as other here could be main and vice versa in other studies.
                             # and it remains independent in the warehouse
                             "intervention_name": other_name,
@@ -192,9 +192,9 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
                     study_intervention_aliases.append(
                         {
                             "study_key": study_key,
-                            "intervention_key": other_intervention_key,
+                            "intervention_alias_key": intervention_alias_key,
+                            "intervention_key": intervention_key,
                             "description": intervention.get("description"),
-                            "is_primary_name": False,
                         }
                     )
             # armGroupLabels is excluded to avoid bi-directional inconsistencies due to human errors from source.
@@ -205,6 +205,6 @@ def transform_arms_interventions_module(study_key: str, study_data: pd.Series) -
         arm_interventions,
         interventions,
         study_interventions,
-        other_intervention_names,
+        intervention_aliases,
         study_intervention_aliases,
     )

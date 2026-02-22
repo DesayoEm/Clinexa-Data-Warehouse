@@ -33,27 +33,27 @@ def transform_interventions_browse_module(
 
     Returns:
         Eight-element tuple containing dimension and bridge table pairs:
-            - interventions_mesh, study_interventions_mesh: Direct MeSH assignments
-            - interventions_mesh_ancestors, study_interventions_mesh_ancestors
-            - interventions_browse_leaves, study_interventions_browse_leaves
-            - interventions_browse_branches, study_interventions_browse_branches:
+            - intervention_meshes, study_intervention_meshes: Direct MeSH assignments
+            - intervention_mesh_ancestors, study_intervention_mesh_ancestors
+            - intervention_browse_leaves, study_intervention_browse_leaves
+            - intervention_browse_branches, study_intervention_browse_branches:
                 Branch nodes with name, as_found, and relevance fields
 
         All lists return empty if no MeSH data exists for the study.
 
     """
 
-    interventions_mesh = []
-    study_interventions_mesh = []
+    intervention_meshes = []
+    study_intervention_meshes = []
 
-    interventions_mesh_ancestors = []
-    study_interventions_mesh_ancestors = []
+    intervention_mesh_ancestors = []
+    study_intervention_mesh_ancestors = []
 
-    interventions_browse_leaves = []
-    study_interventions_browse_leaves = []
+    intervention_browse_leaves = []
+    study_intervention_browse_leaves = []
 
-    interventions_browse_branches = []
-    study_interventions_browse_branches = []
+    intervention_browse_branches = []
+    study_intervention_browse_branches = []
 
     interventions_browse_index = NON_SCALAR_FIELDS["interventions_browse"][
         "index_field"
@@ -69,7 +69,7 @@ def transform_interventions_browse_module(
                 for term in terms:
                     term = term.strip()
                     mesh_key = generate_key(term)
-                    interventions_mesh.append(
+                    intervention_meshes.append(
                         {
                             "mesh_key": mesh_key,
                             "mesh_id": mesh.get("id"),
@@ -77,7 +77,7 @@ def transform_interventions_browse_module(
                         }
                     )
 
-                    study_interventions_mesh.append(
+                    study_intervention_meshes.append(
                         {"mesh_key": mesh_key, "study_key": study_key}
                     )
 
@@ -92,7 +92,7 @@ def transform_interventions_browse_module(
                 for term in terms:
                     term = term.strip()
                     ancestor_key = generate_key(term)
-                    interventions_mesh_ancestors.append(
+                    intervention_mesh_ancestors.append(
                         {
                             "ancestor_key": ancestor_key,
                             "ancestor_id": ancestor.get("id"),
@@ -100,7 +100,7 @@ def transform_interventions_browse_module(
                         }
                     )
 
-                    study_interventions_mesh_ancestors.append(
+                    study_intervention_mesh_ancestors.append(
                         {"ancestor_key": ancestor_key, "study_key": study_key}
                     )
 
@@ -113,7 +113,7 @@ def transform_interventions_browse_module(
             leaf_id = browse_leaf.get("id")
             leaf_key = generate_key(leaf_id)
 
-            interventions_browse_leaves.append(
+            intervention_browse_leaves.append(
                 {
                     "leaf_key": leaf_key,
                     "name": browse_leaf.get("name").lower(),
@@ -122,7 +122,7 @@ def transform_interventions_browse_module(
                 }
             )
 
-            study_interventions_browse_leaves.append(
+            study_intervention_browse_leaves.append(
                 {"leaf_key": leaf_key, "study_key": study_key}
             )
 
@@ -138,7 +138,7 @@ def transform_interventions_browse_module(
             branch_name = browse_branch.get("name")
             branch_key = generate_key(branch_abbrev, branch_name)
 
-            interventions_browse_branches.append(
+            intervention_browse_branches.append(
                 {
                     "branch_key": branch_key,
                     "abbrev": browse_branch.get("abbrev"),
@@ -146,20 +146,20 @@ def transform_interventions_browse_module(
                 }
             )
 
-            study_interventions_browse_branches.append(
+            study_intervention_browse_branches.append(
                 {"branch_key": branch_key, "study_key": study_key}
             )
 
     # else:
-    #     log.warning(f"No interventions_mesh found for study {study_key}, page - NCT ID {nct_id}")
+    #     log.warning(f"No intervention_meshes found for study {study_key}, page - NCT ID {nct_id}")
 
     return (
-        interventions_mesh,
-        study_interventions_mesh,
-        interventions_mesh_ancestors,
-        study_interventions_mesh_ancestors,
-        interventions_browse_leaves,
-        study_interventions_browse_leaves,
-        interventions_browse_branches,
-        study_interventions_browse_branches,
+        intervention_meshes,
+        study_intervention_meshes,
+        intervention_mesh_ancestors,
+        study_intervention_mesh_ancestors,
+        intervention_browse_leaves,
+        study_intervention_browse_leaves,
+        intervention_browse_branches,
+        study_intervention_browse_branches,
     )
