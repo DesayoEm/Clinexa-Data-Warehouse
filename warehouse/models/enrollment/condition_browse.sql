@@ -12,14 +12,6 @@ WITH condition_meshes_source AS (
     {% endif %}
     ),
 
-    condition_browse_branches_source AS (
-    SELECT *
-    FROM {{ source('staging', 'condition_browse_branches') }}
-    {% if is_incremental() %}
-        WHERE branch_key NOT IN (SELECT term_key FROM {{ this }})
-    {% endif %}
-    ),
-
     condition_mesh_ancestors_source AS (
     SELECT *
     FROM {{ source('staging', 'condition_mesh_ancestors') }}
@@ -28,19 +20,19 @@ WITH condition_meshes_source AS (
     {% endif %}
     ),
 
-    condition_browse_leaves_source AS (
-    SELECT *
-    FROM {{ source('staging', 'condition_browse_leaves') }}
-    {% if is_incremental() %}
-        WHERE leaf_key NOT IN (SELECT term_key FROM {{ this }})
-    {% endif %}
-    ),
-
     condition_browse_branches_source AS (
     SELECT *
     FROM {{ source('staging', 'condition_browse_branches') }}
     {% if is_incremental() %}
         WHERE branch_key NOT IN (SELECT term_key FROM {{ this }})
+    {% endif %}
+    ),
+
+    condition_browse_leaves_source AS (
+    SELECT *
+    FROM {{ source('staging', 'condition_browse_leaves') }}
+    {% if is_incremental() %}
+        WHERE leaf_key NOT IN (SELECT term_key FROM {{ this }})
     {% endif %}
     ),
 
@@ -104,5 +96,6 @@ WITH condition_meshes_source AS (
         UNION
         SELECT * FROM condition_browse_leaves
         UNION
-        SELECT * FROM condition_browse_branch
+        SELECT * FROM condition_browse_branches
     )
+SELECT * FROM final

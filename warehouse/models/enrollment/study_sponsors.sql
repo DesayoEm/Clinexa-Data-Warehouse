@@ -25,7 +25,7 @@ WITH study_sponsors_source AS (
             dag_execution_date,
             dag_id,
             dag_run_id,
-            dbt_created_on
+            CURRENT_DATE AS dbt_created_on
         FROM study_sponsors_source
     )
 

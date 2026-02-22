@@ -27,7 +27,7 @@ studies_transformed AS (
         study_type,
         patient_registry,
         enrollment_type,
-        CAST enrollment_count AS INT,
+        CAST(enrollment_count AS INT) AS enrollment_count,
         design_allocation,
         design_intervention_model,
         design_intervention_model_desc,
@@ -37,16 +37,20 @@ studies_transformed AS (
         design_time_perspective,
         biospec_retention,
         biospec_desc,
-        design_masking,
         eligibility_criteria,
         healthy_volunteers,
         sex,
-        min_age,
-        max_age,
+        min_age_raw,
+        min_age_value,
+        min_age_metric,
+        max_age_raw,
+        max_age_value,
+        max_age_metric,
+
         CASE
-            WHEN minimum_age_years >= 65 then 'Seniors'
-            WHEN minimum_age_years >= 18 then 'Adults'
-            WHEN maximum_age_years < 18 then 'Pediatric'
+            WHEN min_age_value >= 65 THEN 'Geriatric'
+            WHEN min_age_value >= 18 THEN 'Adults'
+            WHEN max_age_value < 18 THEN 'Pediatric'
             ELSE 'All Ages'
         END AS age_group,
         population_desc,

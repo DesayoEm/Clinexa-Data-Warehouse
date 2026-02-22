@@ -12,14 +12,6 @@ WITH intervention_meshes_source AS (
     {% endif %}
     ),
 
-    intervention_browse_branches_source AS (
-    SELECT *
-    FROM {{ source('staging', 'intervention_browse_branches') }}
-    {% if is_incremental() %}
-        WHERE branch_key NOT IN (SELECT term_key FROM {{ this }})
-    {% endif %}
-    ),
-
     intervention_mesh_ancestors_source AS (
     SELECT *
     FROM {{ source('staging', 'intervention_mesh_ancestors') }}
@@ -104,5 +96,7 @@ WITH intervention_meshes_source AS (
         UNION
         SELECT * FROM intervention_browse_leaves
         UNION
-        SELECT * FROM intervention_browse_branch
+        SELECT * FROM intervention_browse_branches
     )
+
+SELECT * FROM final

@@ -1,0 +1,1032 @@
+version: 2
+
+sources:
+  - name: staging
+    schema: staging
+    description: >
+      Clinical trial data sourced from the ClinicalTrials.gov API.
+
+    tables:
+      # Study 
+      - name: studies
+        description: Core study-level data.
+        columns:
+          - name: study_key
+            description: Primary key (16-char hash).
+            tests:
+              - unique
+              - not_null
+          - name: nct_id
+            description: ClinicalTrials.gov identifier.
+            tests:
+              - unique
+              - not_null
+
+      - name: secondary_ids
+        description: Secondary identifiers associated with a study.
+        columns:
+          - name: secondary_id_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: nct_aliases
+        description: Alias NCT IDs for a study.
+        columns:
+          - name: id_alias_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      # Sponsors & Collaborators 
+      - name: sponsors
+        description: Lead sponsor dimension table.
+        columns:
+          - name: sponsor_key
+            tests:
+              - unique
+              - not_null
+
+      - name: study_sponsors
+        description: Bridge table linking studies to lead sponsors.
+        columns:
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: sponsor_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'sponsors')
+                  field: sponsor_key
+
+      - name: collaborators
+        description: Collaborator dimension table.
+        columns:
+          - name: collaborator_key
+            tests:
+              - unique
+              - not_null
+
+      - name: study_collaborators
+        description: Bridge table linking studies to collaborators.
+        columns:
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: collaborator_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'collaborators')
+                  field: collaborator_key
+
+      # Conditions & Keywords 
+      - name: conditions
+        description: Condition/disease dimension table.
+        columns:
+          - name: condition_key
+            tests:
+              - unique
+              - not_null
+
+      - name: study_conditions
+        description: Bridge table linking studies to conditions.
+        columns:
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: condition_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'conditions')
+                  field: condition_key
+
+      - name: keywords
+        description: Keyword dimension table.
+        columns:
+          - name: keyword_key
+            tests:
+              - unique
+              - not_null
+
+      - name: study_keywords
+        description: Bridge table linking studies to keywords.
+        columns:
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: keyword_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'keywords')
+                  field: keyword_key
+
+      # Arms & Interventions 
+      - name: arm_groups
+        description: Arm/group definitions per study.
+        columns:
+          - name: arm_group_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: interventions
+        description: Intervention dimension table.
+        columns:
+          - name: intervention_key
+            tests:
+              - unique
+              - not_null
+
+      - name: arm_interventions
+        description: Bridge table linking arm groups to interventions within a study.
+        columns:
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: arm_group_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'arm_groups')
+                  field: arm_group_key
+          - name: arm_intervention_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'interventions')
+                  field: intervention_key
+
+      - name: study_interventions
+        description: Bridge table linking studies to interventions with study-specific descriptions.
+        columns:
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: intervention_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'interventions')
+                  field: intervention_key
+
+      - name: intervention_aliases
+        description: Alternative names/types for interventions.
+        columns:
+          - name: intervention_alias_key
+            tests:
+              - not_null
+          - name: intervention_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'interventions')
+                  field: intervention_key
+
+      - name: study_intervention_aliases
+        description: Bridge table linking studies to intervention aliases.
+        columns:
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      # Outcomes 
+      - name: primary_outcomes
+        description: Primary outcome measures defined for a study.
+        columns:
+          - name: outcome_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: secondary_outcomes
+        description: Secondary outcome measures defined for a study.
+        columns:
+          - name: outcome_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: other_outcomes
+        description: Other outcome measures defined for a study.
+        columns:
+          - name: outcome_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      # Contacts & Locations 
+      - name: central_contacts
+        description: Central contact dimension table.
+        columns:
+          - name: contact_key
+            tests:
+              - unique
+              - not_null
+
+      - name: study_central_contacts
+        description: Bridge table linking studies to central contacts.
+        columns:
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: contact_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'central_contacts')
+                  field: contact_key
+
+      - name: locations
+        description: Facility/site location dimension table with geocoordinates.
+        columns:
+          - name: location_key
+            tests:
+              - unique
+              - not_null
+
+      - name: study_locations
+        description: Bridge table linking studies to locations with recruitment status.
+        columns:
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: location_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'locations')
+                  field: location_key
+
+      - name: location_contacts
+        description: Contact information for specific study locations.
+        columns:
+          - name: contact_key
+            tests:
+              - unique
+              - not_null
+
+      - name: study_location_contacts
+        description: Bridge table linking studies, locations, and location-specific contacts.
+        columns:
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: location_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'locations')
+                  field: location_key
+          - name: contact_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'location_contacts')
+                  field: contact_key
+
+      # References ──
+      - name: study_references
+        description: PubMed and other literature references for a study.
+        columns:
+          - name: ref_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: link_references
+        description: External URL references for a study.
+        columns:
+          - name: link_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: ipd_references
+        description: Individual participant data sharing references.
+        columns:
+          - name: ipd_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      # Outcome Measures & Results ───
+      - name: outcome_measures
+        description: Reported outcome measures with statistical parameters.
+        columns:
+          - name: outcome_measure_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: outcome_measure_groups
+        description: Groups (arms) within a reported outcome measure.
+        columns:
+          - name: group_key
+            tests:
+              - unique
+              - not_null
+          - name: outcome_measure_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'outcome_measures')
+                  field: outcome_measure_key
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: outcome_measure_denom_units
+        description: Denominator unit dimension table for outcome measures.
+        columns:
+          - name: denom_unit_key
+            tests:
+              - unique
+              - not_null
+
+      - name: outcome_measure_denom_counts
+        description: Denominator counts (sample sizes) per group and unit for outcome measures.
+        columns:
+          - name: denom_count_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: outcome_measure_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'outcome_measures')
+                  field: outcome_measure_key
+          - name: denom_unit_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'outcome_measure_denom_units')
+                  field: denom_unit_key
+          - name: group_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'outcome_measure_groups')
+                  field: group_key
+
+      - name: outcome_measure_groups_result
+        description: Measurement values per group for outcome measures.
+        columns:
+          - name: group_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'outcome_measure_groups')
+                  field: group_key
+          - name: outcome_measure_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'outcome_measures')
+                  field: outcome_measure_key
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: outcome_measure_analyses
+        description: Statistical analysis results for outcome measures.
+        columns:
+          - name: analysis_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: outcome_measure_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'outcome_measures')
+                  field: outcome_measure_key
+
+      - name: outcome_measure_comparison_groups
+        description: Groups compared in outcome measure analyses.
+        columns:
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: outcome_measure_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'outcome_measures')
+                  field: outcome_measure_key
+          - name: analysis_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'outcome_measure_analyses')
+                  field: analysis_key
+          - name: group_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'outcome_measure_groups')
+                  field: group_key
+
+      # Participant Flow 
+      - name: flow_groups
+        description: Participant flow group definitions per study.
+        columns:
+          - name: group_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: flow_periods
+        description: Participant flow period definitions per study.
+        columns:
+          - name: period_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: flow_period_milestones
+        description: Milestones within flow periods.
+        columns:
+          - name: milestone_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: period_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'flow_periods')
+                  field: period_key
+
+      - name: flow_period_milestone_achievements
+        description: Achievement counts per milestone, period, and group.
+        columns:
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: period_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'flow_periods')
+                  field: period_key
+          - name: milestone_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'flow_period_milestones')
+                  field: milestone_key
+          - name: group_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'flow_groups')
+                  field: group_key
+
+      - name: withdrawal_types
+        description: Withdrawal type dimension table.
+        columns:
+          - name: withdrawal_type_key
+            tests:
+              - unique
+              - not_null
+
+      - name: flow_period_withdrawals
+        description: Withdrawal records per period and type.
+        columns:
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: period_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'flow_periods')
+                  field: period_key
+          - name: withdrawal_type_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'withdrawal_types')
+                  field: withdrawal_type_key
+
+      - name: flow_period_withdrawal_reasons
+        description: Detailed withdrawal reasons per group.
+        columns:
+          - name: reason_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: period_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'flow_periods')
+                  field: period_key
+          - name: withdrawal_type_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'withdrawal_types')
+                  field: withdrawal_type_key
+          - name: group_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'flow_groups')
+                  field: group_key
+
+      # Adverse Events ──
+      - name: adverse_events
+        description: Adverse event reporting metadata per study.
+        columns:
+          - name: adverse_event_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: event_groups
+        description: Event reporting groups with aggregate counts.
+        columns:
+          - name: event_group_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: adverse_event_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'adverse_events')
+                  field: adverse_event_key
+
+      - name: serious_events
+        description: Serious adverse event terms and classifications.
+        columns:
+          - name: serious_event_key
+            tests:
+              - unique
+              - not_null
+          - name: adverse_event_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'adverse_events')
+                  field: adverse_event_key
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: serious_event_stats
+        description: Statistical counts for serious adverse events per group.
+        columns:
+          - name: event_stat_key
+            tests:
+              - unique
+              - not_null
+          - name: adverse_event_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'adverse_events')
+                  field: adverse_event_key
+          - name: serious_event_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'serious_events')
+                  field: serious_event_key
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: group_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'event_groups')
+                  field: event_group_key
+
+      - name: other_events
+        description: Other (non-serious) adverse event terms and classifications.
+        columns:
+          - name: other_event_key
+            tests:
+              - unique
+              - not_null
+          - name: adverse_event_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'adverse_events')
+                  field: adverse_event_key
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: other_event_stats
+        description: Statistical counts for other adverse events per group.
+        columns:
+          - name: event_stat_key
+            tests:
+              - unique
+              - not_null
+          - name: other_event_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'other_events')
+                  field: other_event_key
+          - name: adverse_event_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'adverse_events')
+                  field: adverse_event_key
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+          - name: group_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'event_groups')
+                  field: event_group_key
+
+      # Violations ──
+      - name: violations
+        description: FDAAA 801 violation records.
+        columns:
+          - name: violation_key
+            tests:
+              - unique
+              - not_null
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      # Condition MeSH Taxonomy ─
+      - name: condition_meshes
+        description: Condition MeSH term dimension table.
+        columns:
+          - name: mesh_key
+            tests:
+              - unique
+              - not_null
+
+      - name: study_condition_meshes
+        description: Bridge table linking studies to condition MeSH terms.
+        columns:
+          - name: mesh_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'condition_meshes')
+                  field: mesh_key
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: condition_mesh_ancestors
+        description: Parent/ancestor terms in the condition MeSH hierarchy.
+        columns:
+          - name: ancestor_key
+            tests:
+              - unique
+              - not_null
+
+      - name: study_condition_mesh_ancestors
+        description: Bridge table linking studies to condition MeSH ancestors.
+        columns:
+          - name: ancestor_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'condition_mesh_ancestors')
+                  field: ancestor_key
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: condition_browse_leaves
+        description: Condition browse leaf nodes.
+        columns:
+          - name: leaf_key
+            tests:
+              - unique
+              - not_null
+
+      - name: study_condition_browse_leaves
+        description: Bridge table linking studies to condition browse leaves.
+        columns:
+          - name: leaf_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'condition_browse_leaves')
+                  field: leaf_key
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: condition_browse_branches
+        description: Condition browse branch categories.
+        columns:
+          - name: branch_key
+            tests:
+              - unique
+              - not_null
+
+      - name: study_condition_browse_branches
+        description: Bridge table linking studies to condition browse branches.
+        columns:
+          - name: branch_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'condition_browse_branches')
+                  field: branch_key
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      # Intervention MeSH Taxonomy ───
+      - name: intervention_meshes
+        description: Intervention MeSH term dimension table.
+        columns:
+          - name: mesh_key
+            tests:
+              - unique
+              - not_null
+
+      - name: study_intervention_meshes
+        description: Bridge table linking studies to intervention MeSH terms.
+        columns:
+          - name: mesh_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'intervention_meshes')
+                  field: mesh_key
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: intervention_mesh_ancestors
+        description: Parent/ancestor terms in the intervention MeSH hierarchy.
+        columns:
+          - name: ancestor_key
+            tests:
+              - unique
+              - not_null
+
+      - name: study_intervention_mesh_ancestors
+        description: Bridge table linking studies to intervention MeSH ancestors.
+        columns:
+          - name: ancestor_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'intervention_mesh_ancestors')
+                  field: ancestor_key
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: intervention_browse_leaves
+        description: Intervention browse leaf nodes.
+        columns:
+          - name: leaf_key
+            tests:
+              - unique
+              - not_null
+
+      - name: study_intervention_browse_leaves
+        description: Bridge table linking studies to intervention browse leaves.
+        columns:
+          - name: leaf_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'intervention_browse_leaves')
+                  field: leaf_key
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+      - name: intervention_browse_branches
+        description: Intervention browse branch categories.
+        columns:
+          - name: branch_key
+            tests:
+              - unique
+              - not_null
+
+      - name: study_intervention_browse_branches
+        description: Bridge table linking studies to intervention browse branches.
+        columns:
+          - name: branch_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'intervention_browse_branches')
+                  field: branch_key
+          - name: study_key
+            tests:
+              - not_null
+              - relationships:
+                  to: source('staging', 'studies')
+                  field: study_key
+
+
