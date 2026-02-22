@@ -1,15 +1,25 @@
 {{ config(
-    materialized='table'
+    materialized='incremental',
+    schema = 'enrollment',
+    unique_key = 'intervention_key'
 ) }}
 
-with intervention_aliases_source as (
-    select * from {{ source('staging', 'intervention_aliases') }}
+WITH intervention_aliases_source AS (
+    SELECT * FROM {{ source('staging', 'intervention_aliases') }}
 ),
 
-intervention_aliases as (
-    select
-        *
-    from intervention_aliases_source
+intervention_aliases AS (
+    SELECT
+        intervention_key,
+        intervention_name,
+        intervention_type,
+        dag_execution_date,
+        dag_id,
+        dag_run_id,
+        first_loaded_on,
+        last_seen_on,
+        CURRENT_DATE AS dbt_created_on
+    FROM intervention_aliases_source
 )
 
-select * from intervention_aliases
+SELECT * FROM intervention_aliases

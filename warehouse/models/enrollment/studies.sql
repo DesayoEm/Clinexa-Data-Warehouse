@@ -1,6 +1,9 @@
 {{ config(
-    materialized='table'
- ) }}
+    materialized='incremental',
+    schema = 'enrollment',
+    unique_key = 'study_key'
+) }}
+
 
 
 with studies_source as (
@@ -9,24 +12,28 @@ with studies_source as (
 
 studies_transformed AS (
     SELECT
+        study_key,
         nct_id,
+        org_study_id,
         brief_title,
         official_title,
         acronym,
-        org_study_id,
         brief_summary,
         detailed_desc,
         responsible_party_type,
         study_type,
-        enrollment_type,
         patient_registry,
-        enrollment_count,
+        enrollment_type,
+        CAST enrollment_count AS INT,
         design_allocation,
         design_intervention_model,
         design_intervention_model_desc,
         design_primary_purpose,
+        design_masking,
         design_observational_model,
         design_time_perspective,
+        biospec_retention,
+        biospec_desc,
         design_masking,
         eligibility_criteria,
         healthy_volunteers,
@@ -40,7 +47,6 @@ studies_transformed AS (
             ELSE 'All Ages'
         END AS age_group,
         population_desc,
-        sampling_method,
         overall_status,
         CASE
             WHEN overall_status in ('RECRUITING', 'ACTIVE_NOT_RECRUITING', 'ENROLLING_BY_INVITATION')
@@ -48,6 +54,10 @@ studies_transformed AS (
         END AS is_active,
         last_known_status,
         status_verified_date,
+        CASE
+            WHEN start_date ~ '^\d{4}-\d{2}$'
+            THEN (start_date || '-01')::DATE
+        END AS status_verified_date_parsed,
         start_date,
         CASE
             WHEN start_date ~ '^\d{4}-\d{2}$'
@@ -74,7 +84,12 @@ studies_transformed AS (
         poc_phone,
         poc_phone_ext,
         last_updated,
-        CURRENT TIMESTAMP AS dbt_created_at
+        dag_execution_date DATE,
+        dag_id,
+        dag_run_id,
+        first_loaded_on,
+        last_seen_on,
+        CURRENT_DATE AS dbt_created_on
 
     FROM studies_source
     )

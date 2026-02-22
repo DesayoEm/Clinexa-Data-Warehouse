@@ -1,15 +1,28 @@
 {{ config(
-    materialized='table'
+    materialized='incremental',
+    schema = 'enrollment',
+    unique_key = 'secondary_id_key'
 ) }}
 
-with collaborators_source as (
-    select * from {{ source('staging', 'collaborators') }}
+WITH secondary_ids_source AS (
+    SELECT * FROM {{ source('staging', 'secondary_ids') }}
 ),
 
-collaborators as (
-    select
-        *
-    from collaborators_source
+secondary_ids AS (
+    SELECT
+        secondary_id_key,
+        study_key,
+        id,
+        type,
+        domain,
+        link,
+        dag_execution_date,
+        dag_id,
+        dag_run_id,
+        first_loaded_on,
+        last_seen_on,
+        CURRENT_TIMESTAMP AS dbt_created_on
+    FROM secondary_ids_source
 )
 
-select * from collaborators
+SELECT * FROM secondary_ids

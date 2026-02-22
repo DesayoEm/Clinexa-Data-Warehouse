@@ -1,15 +1,29 @@
 {{ config(
-    materialized='table'
+    materialized='incremental',
+    schema = 'enrollment',
+    unique_key = 'location_key'
 ) }}
 
-with locations_source as (
-    select * from {{ source('staging', 'locations') }}
+WITH locations_source AS (
+    SELECT * FROM {{ source('staging', 'locations') }}
 ),
 
-locations as (
-    select
-        *
-    from locations_source
+locations AS (
+    SELECT
+        location_key,
+        facility,
+        city,
+        state,
+        country,
+        lat,
+        lon,
+        dag_execution_date,
+        dag_id,
+        dag_run_id,
+        first_loaded_on,
+        last_seen_on,
+        CURRENT_DATE AS dbt_created_on
+    FROM locations_source
 )
 
-select * from locations
+SELECT * FROM locations

@@ -5,13 +5,11 @@
 ) }}
 
 
-
-
-WITH study_intervention_meshes_source AS (
-    SELECT * FROM {{ source('staging', 'study_intervention_meshes') }}
+WITH study_condition_meshes_source AS (
+    SELECT * FROM {{ source('staging', 'study_condition_meshes') }}
 ),
 
-study_intervention_meshes AS (
+study_condition_meshes AS (
     SELECT
         mesh_key,
         study_key,
@@ -21,7 +19,7 @@ study_intervention_meshes AS (
         first_loaded_on,
         last_seen_on,
         CURRENT_DATE AS dbt_created_on
-    FROM study_intervention_meshes_source
+    FROM study_condition_meshes_source
 )
 
-SELECT * FROM study_intervention_meshes
+SELECT * FROM study_condition_meshes

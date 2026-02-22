@@ -68,7 +68,7 @@ PK_MAP = {
         "group_key",
     ],
     "flow_period_withdrawals": ["study_key", "period_key", "withdrawal_type_key"],
-    "study_condition_meshes": ["mesh_key", "study_key"],
+    "study_condition_meshes.sql": ["mesh_key", "study_key"],
     "study_condition_mesh_ancestors": ["ancestor_key", "study_key"],
     "study_condition_browse_leaves": ["leaf_key", "study_key"],
     "study_condition_browse_branches": ["branch_key", "study_key"],

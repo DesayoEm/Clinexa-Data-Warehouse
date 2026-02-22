@@ -1,15 +1,24 @@
 {{ config(
-    materialized='table'
+    materialized='incremental',
+    schema = 'enrollment',
+    unique_key = 'keyword_key'
 ) }}
 
-with keywords_source as (
-    select * from {{ source('staging', 'keywords') }}
+WITH keywords_source AS (
+    SELECT * FROM {{ source('staging', 'keywords') }}
 ),
 
-keywords as (
-    select
-        *
-    from keywords_source
+keywords AS (
+    SELECT
+        keyword_key,
+        keyword_name,
+        dag_execution_date,
+        dag_id,
+        dag_run_id,
+        first_loaded_on,
+        last_seen_on,
+        CURRENT_DATE AS dbt_created_on
+    FROM keywords_source
 )
 
-select * from keywords
+SELECT * FROM keywords

@@ -1,6 +1,7 @@
 CREATE SCHEMA staging;
 CREATE SCHEMA dev;
-CREATE SCHEMA landscape_patient_matching;
+CREATE SCHEMA enrollment;
+CREATE SCHEMA study_landscape;
 CREATE SCHEMA outcome_analysis;
 
 -- ENUMS
@@ -1292,4 +1293,3 @@ CREATE TABLE staging.study_intervention_browse_branches (
     last_seen_on DATE,
     PRIMARY KEY (branch_key, study_key)
 );
-

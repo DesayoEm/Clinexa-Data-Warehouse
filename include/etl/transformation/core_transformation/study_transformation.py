@@ -289,7 +289,7 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
     ) = transform_conditions_browse_module(study_key, study)
 
     result["condition_meshes"].extend(condition_meshes)
-    result["study_condition_meshes"].extend(study_condition_meshes)
+    result["study_condition_meshes.sql"].extend(study_condition_meshes)
     result["condition_mesh_ancestors"].extend(condition_mesh_ancestors)
     result["study_condition_mesh_ancestors"].extend(study_condition_mesh_ancestors)
     result["condition_browse_leaves"].extend(condition_browse_leaves)
@@ -374,7 +374,7 @@ def transform_single_study(nct_id: str, study: pd.Series) -> StudyResult:
         other_event_stats=result["other_event_stats"],
         violations=result["violations"],
         condition_meshes=result["condition_meshes"],
-        study_condition_meshes=result["study_condition_meshes"],
+        study_condition_meshes=result["study_condition_meshes.sql"],
         condition_mesh_ancestors=result["condition_mesh_ancestors"],
         study_condition_mesh_ancestors=result["study_condition_mesh_ancestors"],
         condition_browse_leaves=result["condition_browse_leaves"],
@@ -498,7 +498,7 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
 
     # conditionBrowseModule
     df_condition_meshes = pd.DataFrame(results["condition_meshes"])
-    df_study_condition_meshes = pd.DataFrame(results["study_condition_meshes"])
+    df_study_condition_meshes = pd.DataFrame(results["study_condition_meshes.sql"])
     df_condition_mesh_ancestors = pd.DataFrame(results["condition_mesh_ancestors"])
     df_study_condition_mesh_ancestors = pd.DataFrame(
         results["study_condition_mesh_ancestors"]
@@ -770,7 +770,7 @@ def post_process_tables(results: Dict[str, List[Dict]]) -> Dict[str, pd.DataFram
         "other_event_stats": df_other_event_stats,
         "violations": df_violations,
         "condition_meshes": df_condition_meshes,
-        "study_condition_meshes": df_study_condition_meshes,
+        "study_condition_meshes.sql": df_study_condition_meshes,
         "condition_mesh_ancestors": df_condition_mesh_ancestors,
         "study_condition_mesh_ancestors": df_study_condition_mesh_ancestors,
         "condition_browse_leaves": df_condition_browse_leaves,

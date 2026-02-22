@@ -31,7 +31,7 @@ def transform_conditions_browse_module(study_key: str, study_data: pd.Series) ->
 
     Returns:
         Eight-element tuple containing dimension and bridge table pairs:
-            - condition_meshes, study_condition_meshes: Direct MeSH assignments
+            - condition_meshes, study_condition_meshes.sql: Direct MeSH assignments
             - condition_mesh_ancestors, study_condition_mesh_ancestors
             - condition_browse_leaves, study_condition_browse_leaves
             - condition_browse_branches, study_condition_browse_branches

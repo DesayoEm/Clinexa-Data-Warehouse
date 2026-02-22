@@ -1,15 +1,26 @@
 {{ config(
-    materialized='table'
+    materialized='incremental',
+    schema = 'enrollment',
+    unique_key = 'mesh_key'
 ) }}
 
-with intervention_meshes_source as (
-    select * from {{ source('staging', 'intervention_meshes') }}
+
+WITH intervention_meshes_source AS (
+    SELECT * FROM {{ source('staging', 'intervention_meshes') }}
 ),
 
-intervention_meshes as (
-    select
-        *
-    from intervention_meshes_source
+intervention_meshes AS (
+    SELECT
+        mesh_key,
+        mesh_id,
+        mesh_term,
+        dag_execution_date,
+        dag_id,
+        dag_run_id,
+        first_loaded_on,
+        last_seen_on,
+        CURRENT_DATE AS dbt_created_on
+    FROM intervention_meshes_source
 )
 
-select * from intervention_meshes
+SELECT * FROM intervention_meshes

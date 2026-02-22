@@ -1,15 +1,32 @@
 {{ config(
-    materialized='table'
+    materialized='table',
+    schema = 'enrollment'
 ) }}
 
-with study_sponsors_source as (
-    select * from {{ source('staging', 'study_sponsors') }}
+
+-- Materialized as table (full refresh) rather than incremental.
+-- Although sponsor entities themselves are stable, the relationship between
+-- a study and its sponsors can change -- sponsors can be added or removed
+-- over the course of a study. Since this is a junction table representing
+-- current study-sponsor relationships, a full refresh ensures the API
+-- always reflects the current state. Incremental would risk retaining
+-- stale relationships that no longer exist at the source.
+
+
+
+WITH study_sponsors_source AS (
+    SELECT * FROM {{ source('staging', 'study_sponsors') }}
 ),
 
-study_sponsors as (
-    select
-        *
-    from study_sponsors_source
+study_sponsors AS (
+    SELECT
+        study_key,
+        sponsor_key,
+        dag_execution_date,
+        dag_id,
+        dag_run_id,
+        dbt_created_on
+    FROM study_sponsors_source
 )
 
-select * from study_sponsors
+SELECT * FROM study_sponsors
