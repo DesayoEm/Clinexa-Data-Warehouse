@@ -12,4 +12,6 @@ dependencies = []
 include-package-data = true
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["dags*", "infra*", "config*", "include*", "plugins*", "tests*"]
+include = ["dags*", "infra*", "config*", "include*", "plugins*"]
+exclude = ["tests*"]
+

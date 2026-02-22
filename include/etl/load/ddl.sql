@@ -237,14 +237,6 @@ CREATE TYPE BrowseLeafRelevance AS ENUM(
     'HIGH'
 );
 
-
-CREATE TYPE ContactRole AS ENUM(
-    'STUDY_CHAIR',
-    'STUDY_DIRECTOR',
-    'PRINCIPAL_INVESTIGATOR',
-    'SUB_INVESTIGATOR',
-    'CONTACT'
-);
 --- fixed character lengths are created using the registry docs as as a guide. TEXT for unreliable fields
 
 
@@ -288,8 +280,12 @@ CREATE TABLE IF NOT EXISTS staging.studies(
     eligibility_criteria TEXT,
     healthy_volunteers BOOLEAN,
     sex BioSex,
-    min_age VARCHAR(20),
-    max_age VARCHAR(20),
+    min_age_raw VARCHAR(20),
+    min_age_value INTEGER,
+    min_age_metric VARCHAR(20),
+    max_age_raw VARCHAR(20),
+    max_age_value INTEGER,
+    max_age_metric VARCHAR(20),
     population_desc TEXT,
     sampling_method SamplingMethod,
 
@@ -616,7 +612,7 @@ CREATE TABLE staging.other_outcomes (
 CREATE TABLE staging.central_contacts (
     contact_key CHAR(16) PRIMARY KEY,
     name TEXT,
-    role ContactRole,
+    role TEXT,
     phone VARCHAR(30),
     phone_ext VARCHAR(20),
     email TEXT,
@@ -694,14 +690,6 @@ CREATE TABLE staging.study_location_contacts (
     last_seen_on DATE,
     PRIMARY KEY (study_key, location_key, contact_key)
 );
-
-
-
-CREATE INDEX idx_locations_country ON staging.locations(country);
-CREATE INDEX idx_locations_country_city ON staging.locations(country, city);
-CREATE INDEX idx_locations_geo ON staging.locations(lat, lon) WHERE lat IS NOT NULL AND lon IS NOT NULL;
-CREATE INDEX idx_study_locations_status ON staging.study_locations(status);
-
 
 -- Study References
 CREATE TABLE staging.study_references (
@@ -1520,7 +1508,7 @@ CREATE TABLE enrollment.study_intervention_aliases (
 CREATE TABLE enrollment.contacts (
     contact_key CHAR(16) PRIMARY KEY,
     name TEXT,
-    role ContactRole,
+    role TEXT,
     phone VARCHAR(30),
     phone_ext VARCHAR(20),
     email TEXT,

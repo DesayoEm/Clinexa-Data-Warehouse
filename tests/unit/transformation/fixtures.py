@@ -160,7 +160,7 @@ def full_study_data():
                             "name": "Dr. Olusola",
                             "role": "Coordinator",
                             "phone": "90909090",
-                            "phone_ext": "+234",
+                            "phoneExt": "+234",
                             "email": "olusola@hospital.com",
                         },
                         {
