@@ -509,7 +509,7 @@ CREATE TABLE staging.interventions (
     last_seen_on DATE 
 );
 
--- Arm-Intervention (bridge table linking arms to intervention names)
+-- Arm-Intervention
 CREATE TABLE staging.arm_interventions (
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     arm_group_key CHAR(16) NOT NULL REFERENCES staging.arm_groups(arm_group_key),
@@ -523,7 +523,7 @@ CREATE TABLE staging.arm_interventions (
     PRIMARY KEY (study_key, arm_group_key, arm_intervention_key)
 );
 
--- Study-Intervention (bridge table with study-specific attributes)
+-- Study-Intervention
 CREATE TABLE staging.study_interventions (
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     intervention_key CHAR(16) NOT NULL REFERENCES staging.interventions(intervention_key),
@@ -550,7 +550,7 @@ CREATE TABLE staging.intervention_aliases (
     PRIMARY KEY (intervention_alias_key, intervention_key)
 );
 
--- Study-Other Intervention Names 
+-- Study-Intervention aliases
 CREATE TABLE staging.study_intervention_aliases (
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     intervention_alias_key CHAR(16) NOT NULL,

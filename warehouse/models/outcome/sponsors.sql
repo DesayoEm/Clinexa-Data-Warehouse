@@ -8,7 +8,7 @@
 -- Materialized as incremental with a simple existence check on the unique key.
 -- sponsors consist only of a name and class, neither of which changes once recorded.
 -- The sponsor_key is a hash of these attributes, so duplicate records produce
--- identical keys and are ignored by the merge. 
+-- identical keys and are ignored by the merge.
 
 
 WITH sponsors_source AS (
@@ -52,9 +52,9 @@ WITH sponsors_source AS (
     ),
 
     final AS(
-        SELECT * FROM sponsors
-        UNION
-        SELECT * FROM collaborators
-    )
+    SELECT * FROM sponsors
+    UNION
+    SELECT * FROM collaborators
+)
 
 SELECT * FROM final
