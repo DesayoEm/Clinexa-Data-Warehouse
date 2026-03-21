@@ -26,26 +26,21 @@ resource "aws_iam_policy" "s3_access" {
   name        = "s3-access"
   description = "Allow read/write to buckets"
 
+
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
         Effect = "Allow"
-        Action = [
-          "s3:PutObject",
-          "s3:GetObject",
-          "s3:ListBucket",
-          "s3:ReplicateObject",
-          "s3:GetObjectAttributes",
-          "s3:GetObjectVersion",
-          "s3:RestoreObject",
-          "s3:DeleteObject",
-          "s3:HeadObject"
-        ]
-        Resource = [
-          aws_s3_bucket.clinexa-ct.arn,
-          "${aws_s3_bucket.clinexa-ct.arn}/*"
-        ]
+        Action = ["s3:ListBucket"]
+        Resource = [aws_s3_bucket.clinexa-ct.arn]
+      },
+
+      {
+        Effect = "Allow"
+        Action = ["s3:*Object"]
+        Resource = "${aws_s3_bucket.clinexa-ct.arn}/*"
       }
     ]
   })

@@ -91,8 +91,7 @@ CREATE TABLE outcome.sponsors (
 CREATE TABLE outcome.study_sponsors (
     study_key CHAR(16) NOT NULL REFERENCES outcome.studies(study_key),
     sponsor_key CHAR(16) NOT NULL REFERENCES outcome.sponsors(sponsor_key),
-    is_lead
-     BOOLEAN,
+    is_lead BOOLEAN,
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -145,7 +144,7 @@ CREATE TABLE outcome.arm_interventions (
     study_key CHAR(16) NOT NULL REFERENCES outcome.studies(study_key),
     arm_group_key CHAR(16) NOT NULL REFERENCES outcome.arm_groups(arm_group_key),
     arm_intervention_key CHAR(16) NOT NULL REFERENCES outcome.interventions(intervention_key),
-    arm_intervention_name TEXT,
+    arm_intervention TEXT,
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
@@ -204,6 +203,7 @@ CREATE TABLE outcome.outcome_measures (
     population_description TEXT,
     reporting_status ReportingStatus,
     anticipated_posting_date TEXT, -- partial date
+    anticipated_posting_date_parsed DATE,
     param_type MeasureParam,
     dispersion_type TEXT,
     unit_of_measure TEXT,
@@ -428,21 +428,21 @@ CREATE TABLE outcome.flow_period_withdrawal_reasons (
 );
 
 -- Adverse Events
-CREATE TABLE outcome.adverse_events (
-    adverse_event_key CHAR(16) PRIMARY KEY,
+CREATE TABLE outcome.events (
+    event_key CHAR(16) PRIMARY KEY,
     study_key CHAR(16) NOT NULL REFERENCES outcome.studies(study_key),
+    event_type EventType,
     description TEXT,
-    frequency_threshold VARCHAR(20), --INT/FLOAT but API returns a string representation
+    frequency_threshold FLOAT,
     time_frame TEXT,
     mortality_cmt TEXT,
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE
+    dbt_created_on DATE
 );
 
--- Event Groups
+
 CREATE TABLE outcome.event_groups (
     event_group_key CHAR(16) PRIMARY KEY,
     study_key CHAR(16) NOT NULL REFERENCES outcome.studies(study_key),
@@ -459,64 +459,11 @@ CREATE TABLE outcome.event_groups (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE
+    dbt_created_on DATE
 );
 
--- Serious Events
-CREATE TABLE outcome.serious_events (
-    serious_event_key CHAR(16) PRIMARY KEY,
-    adverse_event_key CHAR(16) NOT NULL REFERENCES outcome.adverse_events(adverse_event_key),
-    study_key CHAR(16) NOT NULL REFERENCES outcome.studies(study_key),
-    term TEXT,
-    organ_system TEXT,
-    source_vocab TEXT,
-    assessment_type EventAssessment,
-    notes TEXT,
-    dag_execution_date DATE,
-    dag_id VARCHAR(100),
-    dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE
-);
 
--- Serious Event Stats
-CREATE TABLE outcome.serious_event_stats (
-    event_stat_key CHAR(16) PRIMARY KEY,
-    adverse_event_key CHAR(16) NOT NULL REFERENCES outcome.adverse_events(adverse_event_key),
-    serious_event_key CHAR(16) NOT NULL REFERENCES outcome.serious_events(serious_event_key),
-    study_key CHAR(16) NOT NULL REFERENCES outcome.studies(study_key),
-    group_key CHAR(16) NOT NULL REFERENCES outcome.event_groups(event_group_key),
-    group_id VARCHAR(20),
-    num_events FLOAT,
-    num_affected FLOAT,
-    num_at_risk FLOAT,
-    dag_execution_date DATE,
-    dag_id VARCHAR(100),
-    dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE
-);
-
--- Other Events
-CREATE TABLE outcome.other_events (
-    other_event_key CHAR(16) PRIMARY KEY,
-    adverse_event_key CHAR(16) NOT NULL REFERENCES outcome.adverse_events(adverse_event_key),
-    study_key CHAR(16) NOT NULL REFERENCES outcome.studies(study_key),
-    term TEXT,
-    organ_system TEXT,
-    source_vocab VARCHAR(20),
-    assessment_type EventAssessment,
-    notes TEXT,
-    dag_execution_date DATE,
-    dag_id VARCHAR(100),
-    dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE
-);
-
--- Other Event Stats
-CREATE TABLE outcome.other_event_stats (
+CREATE TABLE outcome.event_stats (
     event_stat_key CHAR(16) PRIMARY KEY,
     other_event_key CHAR(16) NOT NULL REFERENCES outcome.other_events(other_event_key),
     adverse_event_key CHAR(16) NOT NULL REFERENCES outcome.adverse_events(adverse_event_key),
@@ -529,51 +476,25 @@ CREATE TABLE outcome.other_event_stats (
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE
+    dbt_created_on DATE
 );
 
 -- Study References
-CREATE TABLE outcome.study_references (
+CREATE TABLE outcome.references (
     ref_key CHAR(16) PRIMARY KEY,
     study_key CHAR(16) NOT NULL REFERENCES outcome.studies(study_key),
-    pmid VARCHAR(20),
-    type ReferenceType,
-    citation TEXT,
-    dag_execution_date DATE,
-    dag_id VARCHAR(100),
-    dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE 
-);
-
-
--- Link References
-CREATE TABLE outcome.link_references (
-    link_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL REFERENCES outcome.studies(study_key),
+    ref_type RefType,
+    study_ref_type ReferenceType,
+    ipd_ref_type TEXT,
     label TEXT,
     url TEXT,
-    dag_execution_date DATE,
-    dag_id VARCHAR(100),
-    dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE 
-);
-
--- IPD References
-CREATE TABLE outcome.ipd_references (
-    ipd_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL REFERENCES outcome.studies(study_key),
-    id VARCHAR(30),
-    type TEXT,
-    url TEXT,
+    pmid VARCHAR(20),
+    citation TEXT,
     comment TEXT,
     dag_execution_date DATE,
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
-    first_loaded_on DATE,
-    last_seen_on DATE 
+    dbt_created_on DATE
 );
 
 

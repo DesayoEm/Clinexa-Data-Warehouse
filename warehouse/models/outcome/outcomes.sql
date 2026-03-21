@@ -1,7 +1,7 @@
 {{ config(
     materialized='incremental',
     schema = 'outcome',
-    unique_key = 'condition_key'
+    unique_key = 'outcome_key'
 ) }}
 
 

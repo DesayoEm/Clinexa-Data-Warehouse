@@ -174,6 +174,12 @@ CREATE TYPE ReferenceType AS ENUM(
     'DERIVED'
 );
 
+CREATE TYPE RefType AS ENUM(
+    'STUDY',
+    'LINK',
+    'IPD'
+);
+
 CREATE TYPE OutcomeMeasureType AS ENUM(
     'PRIMARY',
     'SECONDARY',
@@ -235,6 +241,13 @@ CREATE TYPE ViolationEventType AS ENUM(
 CREATE TYPE BrowseLeafRelevance AS ENUM(
     'LOW',
     'HIGH'
+);
+
+
+CREATE TYPE EventType AS ENUM(
+    'ADVERSE',
+    'SERIOUS',
+    'OTHER'
 );
 
 --- fixed character lengths are created using the registry docs as as a guide. TEXT for unreliable fields

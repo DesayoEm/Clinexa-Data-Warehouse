@@ -21,6 +21,14 @@ WITH interventions_source AS (
     {% endif %}
     ),
 
+    intervention_aliases_source AS (
+    SELECT *
+    FROM {{ source('staging', 'intervention_aliases') }}
+    {% if is_incremental() %}
+        WHERE mesh_key NOT IN (SELECT intervention_key FROM {{ this }})
+    {% endif %}
+    ),
+
     intervention_mesh_ancestors_source AS (
     SELECT *
     FROM {{ source('staging', 'intervention_mesh_ancestors') }}
@@ -56,6 +64,19 @@ WITH interventions_source AS (
             dag_run_id,
             CURRENT_DATE AS dbt_created_on
         FROM interventions_source
+    ),
+
+    intervention_aliases AS (
+        SELECT
+            intervention_alias_key AS intervention_key,
+            NULL AS mesh_id,
+            description AS intervention,
+            NULL AS abbreviation,
+            dag_execution_date,
+            dag_id,
+            dag_run_id,
+            CURRENT_DATE AS dbt_created_on
+        FROM intervention_aliases_source
     ),
 
     intervention_meshes AS (
@@ -111,8 +132,10 @@ WITH interventions_source AS (
     ),
 
 
-    FINAL AS (
+    final AS (
         SELECT * FROM interventions
+        UNION
+        SELECT * FROM intervention_aliases
         UNION
         SELECT * FROM intervention_meshes
         UNION

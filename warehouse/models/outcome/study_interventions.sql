@@ -1,3 +1,7 @@
+--- Interventions, their aliases, and their meshes at every level have the same value in the outcome layer,
+--- and therefore belong in the same table
+
+
 {{ config(
     materialized='table',
     schema = 'outcome'
@@ -5,8 +9,12 @@
 }}
 
 WITH study_interventions_source AS (
-        SELECT * FROM {{ source('staging', 'study_interventions') }}
+    SELECT * FROM {{ source('staging', 'study_interventions') }}
     ),
+
+     SELECT * FROM {{ source('staging', 'study_intervention_aliases') }}
+    ),
+
     study_intervention_meshes_source AS (
         SELECT * FROM {{ source('staging', 'study_intervention_meshes') }}
     ),
