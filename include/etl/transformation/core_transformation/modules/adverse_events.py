@@ -60,11 +60,11 @@ def transform_adverse_events_module(study_key: str, study_data: pd.Series) -> Tu
     if isinstance(event_group_list, (list, np.ndarray)) and len(event_group_list) > 0:
         for event_group in event_group_list:
             group_id = event_group.get("id")
-            event_group_key = generate_key(study_key, adverse_event_key, group_id)
+            group_key = generate_key(study_key, group_id)
 
             event_groups.append(
                 {
-                    "event_group_key": event_group_key,
+                    "group_key": group_key,
                     "study_key": study_key,
                     "adverse_event_key": adverse_event_key,
                     "group_id": group_id,
@@ -117,7 +117,7 @@ def transform_adverse_events_module(study_key: str, study_data: pd.Series) -> Tu
                 for serious_event_stat in serious_event_stats_list:
                     group_id = serious_event_stat.get("groupId")
 
-                    group_key = generate_key(study_key, adverse_event_key, group_id)
+                    group_key = generate_key(study_key, group_id)
                     event_stat_key = generate_key(
                         study_key, adverse_event_key, serious_event_key, group_id
                     )
@@ -172,7 +172,7 @@ def transform_adverse_events_module(study_key: str, study_data: pd.Series) -> Tu
                 for other_event_stat in other_event_stats_list:
                     group_id = other_event_stat.get("groupId")
 
-                    group_key = generate_key(study_key, adverse_event_key, group_id)
+                    group_key = generate_key(study_key, group_id)
                     event_stat_key = generate_key(
                         study_key, adverse_event_key, other_event_key, group_id
                     )

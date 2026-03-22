@@ -7,14 +7,6 @@
 
 WITH adverse_events_source AS (
     SELECT *
-    FROM {{ source('staging', 'adverse_events') }}
-    {% if is_incremental() %}
-        WHERE event_key NOT IN (SELECT event_key FROM {{ this }})
-    {% endif %}
-    ),
-
-    serious_events_source AS (
-    SELECT *
     FROM {{ source('staging', 'serious_events') }}
     {% if is_incremental() %}
         WHERE event_key NOT IN (SELECT event_key FROM {{ this }})
@@ -27,23 +19,6 @@ WITH adverse_events_source AS (
     {% if is_incremental() %}
         WHERE event_key NOT IN (SELECT event_key FROM {{ this }})
     {% endif %}
-    ),
-
-
-    adverse_events AS (
-        SELECT
-            adverse_event_key  AS event_key,
-            "ADVERSE" AS event_type,
-            study_key,
-            description,
-            CAST frequency_threshold AS FLOAT,
-            time_frame,
-            mortality_cmt,
-            dag_execution_date,
-            dag_id,
-            dag_run_id,
-            CURRENT_DATE AS dbt_created_on
-        FROM adverse_events_source
     ),
 
     serious_events AS (
@@ -81,8 +56,6 @@ WITH adverse_events_source AS (
 
 
     final AS (
-        SELECT * FROM adverse_events
-        UNION
         SELECT * FROM serious_events
         UNION
         SELECT * FROM other_events

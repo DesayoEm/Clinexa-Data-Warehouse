@@ -5,13 +5,12 @@
 
 
 -- Materialized as table
--- Although sponsor entities themselves are stable, the relationship between
--- a study and its sponsors can change -- sponsors can be added or removed
--- over the course of a study. Since this is a junction table representing
--- current study-sponsor relationships, a full refresh ensures the API
--- always reflects the current state. Incremental would risk retaining
--- stale relationships that no longer exist at the source.
 
+-- Although study-sponsor relationships can change over the course of a study
+-- (sponsors added, removed), this model is scoped to trial
+-- outcomes only. Sponsor relationship history is not an outcomes attribute and belongs a in the landscape model.
+
+-- Current sponsor state is sufficient here.
 
 
 WITH study_sponsors_source AS (

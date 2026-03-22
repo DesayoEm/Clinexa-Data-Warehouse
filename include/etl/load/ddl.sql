@@ -772,7 +772,7 @@ CREATE TABLE staging.outcome_measures (
 
 -- Outcome Measure Groups
 CREATE TABLE staging.outcome_measure_groups (
-    group_key CHAR(16) PRIMARY KEY,
+    group_key CHAR(16),
     outcome_measure_key CHAR(16) NOT NULL REFERENCES staging.outcome_measures(outcome_measure_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     group_id VARCHAR(20),
@@ -782,7 +782,8 @@ CREATE TABLE staging.outcome_measure_groups (
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
     first_loaded_on DATE,
-    last_seen_on DATE 
+    last_seen_on DATE,
+    PRIMARY KEY (group_key, outcome_measure_key, study_key)
 );
 
 -- Outcome Measure Denominator Units 
@@ -889,7 +890,7 @@ CREATE TABLE staging.flow_groups (
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
     first_loaded_on DATE,
-    last_seen_on DATE 
+    last_seen_on DATE,
 );
 
 -- Flow Periods
@@ -996,7 +997,7 @@ CREATE TABLE staging.adverse_events (
 
 -- Event Groups
 CREATE TABLE staging.event_groups (
-    event_group_key CHAR(16) PRIMARY KEY,
+    group_key CHAR(16) PRIMARY KEY,
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
     adverse_event_key CHAR(16) NOT NULL REFERENCES staging.adverse_events(adverse_event_key),
     group_id VARCHAR(20),
@@ -1012,7 +1013,8 @@ CREATE TABLE staging.event_groups (
     dag_id VARCHAR(100),
     dag_run_id VARCHAR(100),
     first_loaded_on DATE,
-    last_seen_on DATE 
+    last_seen_on DATE ,
+    PRIMARY KEY (group_key, adverse_event_key, study_key)
 );
 
 -- Serious Events
@@ -1038,7 +1040,7 @@ CREATE TABLE staging.serious_event_stats (
     adverse_event_key CHAR(16) NOT NULL REFERENCES staging.adverse_events(adverse_event_key),
     serious_event_key CHAR(16) NOT NULL REFERENCES staging.serious_events(serious_event_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
-    group_key CHAR(16) NOT NULL REFERENCES staging.event_groups(event_group_key),
+    group_key CHAR(16) NOT NULL REFERENCES staging.event_groups(group_key),
     group_id VARCHAR(20),
     num_events FLOAT,
     num_affected FLOAT,
@@ -1073,7 +1075,7 @@ CREATE TABLE staging.other_event_stats (
     other_event_key CHAR(16) NOT NULL REFERENCES staging.other_events(other_event_key),
     adverse_event_key CHAR(16) NOT NULL REFERENCES staging.adverse_events(adverse_event_key),
     study_key CHAR(16) NOT NULL REFERENCES staging.studies(study_key),
-    group_key CHAR(16) NOT NULL REFERENCES staging.event_groups(event_group_key),
+    group_key CHAR(16) NOT NULL REFERENCES staging.event_groups(group_key),
     group_id VARCHAR(20),
     num_events FLOAT,
     num_affected FLOAT,

@@ -82,7 +82,7 @@ def transform_outcome_measures_module(study_key: str, study_data: pd.Series) -> 
                 for group in groups:
                     group_id = group.get("id")
                     outcome_group_key = generate_key(
-                        study_key, outcome_measure_key, group_id
+                        study_key, group_id
                     )
 
                     outcome_measure_groups.append(
@@ -118,7 +118,7 @@ def transform_outcome_measures_module(study_key: str, study_data: pd.Series) -> 
                         for denom_count in denom_counts:
                             denom_count_group_id = denom_count.get("groupId")
                             denom_count_group_key = generate_key(
-                                study_key, outcome_measure_key, denom_count_group_id
+                                study_key, denom_count_group_id
                             )
                             denom_count_key = generate_key(
                                 study_key,
@@ -158,7 +158,7 @@ def transform_outcome_measures_module(study_key: str, study_data: pd.Series) -> 
                                 for measurement in measurements:
                                     meas_group_id = measurement.get("groupId")
                                     meas_group_key = generate_key(
-                                        study_key, outcome_measure_key, meas_group_id
+                                        study_key, meas_group_id
                                     )  # group keys must be created the same way
 
                                     outcome_measure_groups_result.append(
@@ -230,7 +230,7 @@ def transform_outcome_measures_module(study_key: str, study_data: pd.Series) -> 
                     ):
                         for group_id in analysis_comparison_groups:
                             group_key = generate_key(
-                                study_key, outcome_measure_key, group_id
+                                study_key, group_id
                             )
                             outcome_measure_comparison_groups.append(
                                 {

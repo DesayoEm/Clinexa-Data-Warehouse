@@ -326,7 +326,7 @@ CREATE TABLE outcome.outcome_measure_comparison_groups (
     PRIMARY KEY (study_key, outcome_measure_key, analysis_key, group_key)
 );
 
--- Flow Groups
+
 CREATE TABLE outcome.flow_groups (
     group_key CHAR(16) PRIMARY KEY,
     study_key CHAR(16) NOT NULL REFERENCES outcome.studies(study_key),
@@ -427,10 +427,24 @@ CREATE TABLE outcome.flow_period_withdrawal_reasons (
     last_seen_on DATE
 );
 
--- Adverse Events
+
+CREATE TABLE staging.adverse_events (
+    adverse_event_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16),
+    description TEXT,
+    frequency_threshold FLOAT,
+    time_frame TEXT,
+    mortality_cmt TEXT,
+    dag_execution_date DATE,
+    dag_id VARCHAR(100),
+    dag_run_id VARCHAR(100),
+    dbt_created_on DATE
+);
+
+
 CREATE TABLE outcome.events (
     event_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL REFERENCES outcome.studies(study_key),
+    study_key CHAR(16),
     event_type EventType,
     description TEXT,
     frequency_threshold FLOAT,
@@ -444,9 +458,9 @@ CREATE TABLE outcome.events (
 
 
 CREATE TABLE outcome.event_groups (
-    event_group_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL REFERENCES outcome.studies(study_key),
-    adverse_event_key CHAR(16) NOT NULL REFERENCES outcome.adverse_events(adverse_event_key),
+    group_key CHAR(16) PRIMARY KEY,
+    study_key CHAR(16),
+    adverse_event_key CHAR(16),
     group_id VARCHAR(20),
     title TEXT,
     description TEXT,
@@ -465,10 +479,10 @@ CREATE TABLE outcome.event_groups (
 
 CREATE TABLE outcome.event_stats (
     event_stat_key CHAR(16) PRIMARY KEY,
-    other_event_key CHAR(16) NOT NULL REFERENCES outcome.other_events(other_event_key),
-    adverse_event_key CHAR(16) NOT NULL REFERENCES outcome.adverse_events(adverse_event_key),
-    study_key CHAR(16) NOT NULL REFERENCES outcome.studies(study_key),
-    group_key CHAR(16) NOT NULL REFERENCES outcome.event_groups(event_group_key),
+    event_key CHAR(16),
+    adverse_event_key CHAR(16),
+    study_key CHAR(16),
+    group_key CHAR(16),
     group_id VARCHAR(20),
     num_events FLOAT,
     num_affected FLOAT,
@@ -479,10 +493,10 @@ CREATE TABLE outcome.event_stats (
     dbt_created_on DATE
 );
 
--- Study References
+
 CREATE TABLE outcome.references (
     ref_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL REFERENCES outcome.studies(study_key),
+    study_key,
     ref_type RefType,
     study_ref_type ReferenceType,
     ipd_ref_type TEXT,
@@ -498,10 +512,9 @@ CREATE TABLE outcome.references (
 );
 
 
--- FDAAA 801 Violations
 CREATE TABLE outcome.violations (
     violation_key CHAR(16) PRIMARY KEY,
-    study_key CHAR(16) NOT NULL REFERENCES outcome.studies(study_key),
+    study_key CHAR(16),
     violation_type ViolationEventType,
     issued_date DATE,
     description TEXT,

@@ -1,19 +1,19 @@
 {{ config(
     materialized = 'incremental',
     schema = 'outcome',
-    unique_key = 'arm_group_key'
+    unique_key = 'adverse_event_key'
 )}}
 
 
-WITH arm_groups_source AS (
+WITH adverse_events_source AS (
     SELECT *
-    FROM {{ source ('staging', 'arm_groups')}})
+    FROM {{ source ('staging', 'adverse_events')}})
     {% if is_incremental() %}
-        WHERE arm_group_key NOT IN (SELECT arm_group_key FROM {{ this }})
+        WHERE adverse_event_key NOT IN (SELECT adverse_event_key FROM {{ this }})
     {% endif %}
     ),
 
-    arm_groups AS (
+    adverse_events AS (
         SELECT
             adverse_event_key,
             study_key,
@@ -25,8 +25,8 @@ WITH arm_groups_source AS (
             dag_id,
             dag_run_id,
             CURRENT_DATE AS dbt_created_on
-        FROM arm_groups_source
+        FROM adverse_events_source
     )
 
-SELECT * FROM arm_groups;
+SELECT * FROM adverse_events;
 
